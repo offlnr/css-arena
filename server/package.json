@@ -1,0 +1,19 @@
+{
+  "name": "css-arena-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.10.2"
+  }
+}

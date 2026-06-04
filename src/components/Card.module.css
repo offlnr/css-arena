@@ -1,0 +1,29 @@
+.card {
+  border-radius: 0.5rem;
+}
+
+.card--default {
+  background-color: #2A3038;
+  border: 1px solid #3A4048;
+}
+
+.card--outlined {
+  border: 1px solid #3A4048;
+}
+
+.cardHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid #3A4048;
+}
+
+.cardContent {
+  padding: 1.5rem;
+}
+
+.cardFooter {
+  padding: 1.5rem;
+  border-top: 1px solid #3A4048;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}

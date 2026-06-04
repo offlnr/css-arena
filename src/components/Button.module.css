@@ -1,0 +1,94 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 200ms ease;
+  cursor: pointer;
+  border: none;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid #00FF88;
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Variantes */
+.button--primary {
+  background-color: #00FF88;
+  color: #000000;
+}
+
+.button--primary:hover:not(:disabled) {
+  background-color: #00CC66;
+}
+
+.button--primary:active:not(:disabled) {
+  background-color: #00CC66;
+}
+
+.button--secondary {
+  background-color: #2A3038;
+  border: 1px solid #3A4048;
+  color: #FFFFFF;
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: #242A35;
+}
+
+.button--ghost {
+  background-color: transparent;
+  color: #00FF88;
+}
+
+.button--ghost:hover:not(:disabled) {
+  background-color: #1A1E27;
+}
+
+.button--destructive {
+  background-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.button--destructive:hover:not(:disabled) {
+  background-color: #DC2626;
+}
+
+/* Tamaños */
+.button--sm {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.button--md {
+  height: 2.5rem;
+  padding: 0 1rem;
+  font-size: 1rem;
+}
+
+.button--lg {
+  height: 3rem;
+  padding: 0 1.5rem;
+  font-size: 1.125rem;
+}
+
+.button--icon {
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0;
+}
+
+.button--w-full {
+  width: 100%;
+}
