@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import type { Challenge } from '../data/challenges';
 import { CHALLENGES } from '../data/challenges';
 
@@ -39,7 +39,6 @@ function randomFallback(): Challenge {
 }
 
 function parseResponse(text: string): GeneratedChallenge {
-  // Strip any accidental markdown code fences
   const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(clean);
   if (!parsed.html || !parsed.css || !parsed.title) throw new Error('incomplete');
@@ -47,26 +46,25 @@ function parseResponse(text: string): GeneratedChallenge {
 }
 
 export async function generateChallenge(): Promise<Challenge> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
 
   if (!apiKey) {
-    console.warn('[ChallengeGenerator] No VITE_GEMINI_API_KEY found — using random built-in challenge');
+    console.warn('[ChallengeGenerator] No VITE_GROQ_API_KEY found — using random built-in challenge');
     return randomFallback();
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      generationConfig: {
-        temperature: 1.4,   // high temp → more varied outputs each time
-        responseMimeType: 'application/json',
-      },
+    const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      temperature: 1.2,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: PROMPT }],
     });
 
-    const result = await model.generateContent(PROMPT);
-    const text   = result.response.text();
-    const data   = parseResponse(text);
+    const text = completion.choices[0]?.message?.content ?? '';
+    const data = parseResponse(text);
 
     return {
       id: `gen-${Date.now()}`,

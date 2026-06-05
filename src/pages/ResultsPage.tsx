@@ -22,7 +22,7 @@ function scoreColor(s: number): string {
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) => {
   const { currentRoom, currentUser, gameState } = useGameStore();
-  const challenge = CHALLENGES[0];
+  const challenge = gameState?.challenge ?? CHALLENGES[0];
 
   const [selectedId, setSelectedId] = useState<string>(currentUser?.id ?? results[0]?.user.id ?? '');
   const [showCode, setShowCode]      = useState(false);

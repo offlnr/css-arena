@@ -161,12 +161,21 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     if (loadStatus !== 'ready') return;
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
-        if (t <= 1) { clearInterval(timerRef.current!); handleEnd(); return 0; }
+        if (t <= 1) { clearInterval(timerRef.current!); return 0; }
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(timerRef.current!);
-  }, [loadStatus, handleEnd]); // handleEnd ahora es estable → no se reinicia
+  }, [loadStatus]);
+
+  // Disparar handleEnd cuando el timer llega a 0
+  const hasEndedRef = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && loadStatus === 'ready' && !hasEndedRef.current) {
+      hasEndedRef.current = true;
+      handleEnd();
+    }
+  }, [timeLeft, loadStatus, handleEnd]);
 
   // Bot simulation — only starts after challenge is ready
   useEffect(() => {
