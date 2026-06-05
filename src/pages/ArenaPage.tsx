@@ -20,16 +20,7 @@ interface Player {
   username: string;
   score: number;
   isMe: boolean;
-  maxScore: number;
 }
-
-const FAKE_PLAYERS: Omit<Player, 'score'>[] = [
-  { id: 'bot1', username: 'dev_ninja',  isMe: false, maxScore: 92 },
-  { id: 'bot2', username: 'css_wizard', isMe: false, maxScore: 85 },
-  { id: 'bot3', username: 'pixel_pro',  isMe: false, maxScore: 62 },
-  { id: 'bot4', username: 'html_hero',  isMe: false, maxScore: 45 },
-  { id: 'bot5', username: 'code_fox',   isMe: false, maxScore: 28 },
-];
 
 function buildDoc(html: string, css: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script>document.addEventListener('click',function(e){var el=e.target;while(el){if(el.tagName==='A'||el.tagName==='BUTTON'){e.preventDefault();e.stopPropagation();return;}el=el.parentElement;}},true);<\/script><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#f0f2f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}${css}</style></head><body>${html}</body></html>`;
@@ -93,15 +84,12 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     setHtmlCode(challenge.startHTML);
     setCssCode(challenge.startCSS);
     setPlayers([
-      { id: currentUser?.id ?? 'me', username: currentUser?.username ?? 'tú', score: 0, isMe: true, maxScore: 100 },
-      ...FAKE_PLAYERS.map((p) => ({ ...p, score: 0 })),
+      { id: currentUser?.id ?? 'me', username: currentUser?.username ?? 'tú', score: 0, isMe: true },
     ]);
   }, [challenge, currentUser]);
 
   const resultRef   = useRef<HTMLIFrameElement>(null);
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const botRef      = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Refs para evitar closures rancias en handleEnd
   const playersRef  = useRef<Player[]>([]);
   const timeLeftRef = useRef(timeLeft);
 
@@ -126,7 +114,6 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   // handleEnd sin timeLeft ni players en deps — usa refs para evitar reinicios del timer
   const handleEnd = useCallback(() => {
     clearInterval(timerRef.current!);
-    clearInterval(botRef.current!);
 
     const current = playersRef.current;
     const elapsed = (currentRoom?.duration ?? 5) * 60 - timeLeftRef.current;
@@ -177,18 +164,6 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     }
   }, [timeLeft, loadStatus, handleEnd]);
 
-  // Bot simulation — only starts after challenge is ready
-  useEffect(() => {
-    if (loadStatus !== 'ready') return;
-    botRef.current = setInterval(() => {
-      setPlayers((prev) =>
-        prev.map((p) =>
-          p.isMe ? p : { ...p, score: Math.min(p.score + Math.random() * 1.8, p.maxScore) }
-        )
-      );
-    }, 800);
-    return () => clearInterval(botRef.current!);
-  }, [loadStatus]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
   const formatTime = (s: number) =>
