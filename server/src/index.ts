@@ -125,6 +125,17 @@ io.on('connection', (socket) => {
     }, 1000);
   });
 
+  // ── player_ready ─────────────────────────────────────────────────────────
+  socket.on('player_ready', (payload: { isReady: boolean }) => {
+    if (!currentRoomCode) return;
+    const room = getRoom(currentRoomCode);
+    const player = room?.players.get(socket.id);
+    if (player) {
+      player.isReady = payload.isReady;
+      io.to(currentRoomCode).emit('player_ready_update', { id: socket.id, isReady: payload.isReady });
+    }
+  });
+
   // ── code_update ───────────────────────────────────────────────────────────
   socket.on('code_update', (payload: CodeUpdatePayload) => {
     if (!currentRoomCode) return;

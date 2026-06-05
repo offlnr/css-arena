@@ -14,6 +14,7 @@ interface PlayerInfo {
   id: string;
   username: string;
   isMe: boolean;
+  isReady: boolean;
 }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -55,7 +56,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
         }, (ack: { ok: boolean; roomCode: string }) => {
           if (!ack.ok) { setError('No se pudo crear la sala'); setStatus('error'); return; }
           setRoomCode(ack.roomCode);
-          setPlayers([{ id: socket.id!, username: currentUser?.username ?? 'tú', isMe: true }]);
+          setPlayers([{ id: socket.id!, username: currentUser?.username ?? 'tú', isMe: true, isReady: false }]);
           setStatus('ready');
         });
       } else {
@@ -69,7 +70,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
         }) => {
           if (!ack.ok) { setError(ack.error ?? 'No se pudo unir a la sala'); setStatus('error'); return; }
           const list: PlayerInfo[] = (ack.players ?? []).map((p) => ({
-            id: p.id, username: p.username, isMe: p.id === socket.id,
+            id: p.id, username: p.username, isMe: p.id === socket.id, isReady: false,
           }));
           setPlayers(list);
           setStatus('ready');
@@ -83,7 +84,11 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
     });
 
     socket.on('player_joined', ({ id, username }: { id: string; username: string }) => {
-      setPlayers((prev) => prev.some((p) => p.id === id) ? prev : [...prev, { id, username, isMe: false }]);
+      setPlayers((prev) => prev.some((p) => p.id === id) ? prev : [...prev, { id, username, isMe: false, isReady: false }]);
+    });
+
+    socket.on('player_ready_update', ({ id, isReady }: { id: string; isReady: boolean }) => {
+      setPlayers((prev) => prev.map((p) => p.id === id ? { ...p, isReady } : p));
     });
 
     socket.on('player_left', ({ id }: { id: string }) => {
@@ -100,6 +105,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
       socket.off('connect', init);
       socket.off('connect_error');
       socket.off('player_joined');
+      socket.off('player_ready_update');
       socket.off('player_left');
       socket.off('game_started');
     };
@@ -197,8 +203,8 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
                   {p.isMe && isHost && <span className={styles.hostBadge}>HOST</span>}
                   {p.isMe && !isHost && <span className={styles.meBadge}>tú</span>}
                 </span>
-                <span className={`${styles.readyBadge} ${p.isMe && isReady ? styles.readyBadgeOn : styles.readyBadgeOff}`}>
-                  {p.isMe ? (isReady ? '✓ Listo' : 'No listo') : '…'}
+                <span className={`${styles.readyBadge} ${p.isReady ? styles.readyBadgeOn : styles.readyBadgeOff}`}>
+                  {p.isReady ? '✓ Listo' : 'No listo'}
                 </span>
               </div>
             ))}
@@ -216,7 +222,12 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
         <div className={styles.actions}>
           <button
             className={`${styles.readyBtn} ${isReady ? styles.readyBtnOn : ''}`}
-            onClick={() => setIsReady((v) => !v)}
+            onClick={() => {
+              const next = !isReady;
+              setIsReady(next);
+              setPlayers((prev) => prev.map((p) => p.isMe ? { ...p, isReady: next } : p));
+              getSocket().emit('player_ready', { isReady: next });
+            }}
           >
             {isReady ? '✓ Listo' : 'Marcar como listo'}
           </button>
