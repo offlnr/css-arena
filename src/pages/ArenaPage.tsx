@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { LogOut, BarChart2 } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { generateChallenge } from '../services/challengeGenerator';
+import { getSocket } from '../services/socket';
 import { registerCssCompletions } from '../data/cssCompletions';
 import type { Challenge } from '../data/challenges';
 import type { GameResult } from '../types';
@@ -49,20 +50,27 @@ function calcScore(userCSS: string, targetCSS: string): number {
 }
 
 export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
-  const { currentRoom, currentUser, setGameState } = useGameStore();
+  const { currentRoom, currentUser, setGameState, pendingChallenge, setPendingChallenge, roomPlayers } = useGameStore();
 
   // ── Challenge loading state ─────────────────────────────────────────────
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
+    if (pendingChallenge) {
+      setChallenge(pendingChallenge);
+      setPendingChallenge(null);
+      setLoadStatus('ready');
+      return;
+    }
     let cancelled = false;
     setLoadStatus('loading');
     generateChallenge()
       .then((c) => { if (!cancelled) { setChallenge(c); setLoadStatus('ready'); } })
       .catch(() => { if (!cancelled) setLoadStatus('error'); });
     return () => { cancelled = true; };
-  }, []); // runs once per mount — every new game = fresh challenge
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const retry = () => {
     setLoadStatus('loading');
@@ -83,10 +91,27 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     if (!challenge) return;
     setHtmlCode(challenge.startHTML);
     setCssCode(challenge.startCSS);
-    setPlayers([
-      { id: currentUser?.id ?? 'me', username: currentUser?.username ?? 'tú', score: 0, isMe: true },
-    ]);
-  }, [challenge, currentUser]);
+
+    const socket = getSocket();
+    const myId = socket.id ?? currentUser?.id ?? 'me';
+    const initial = roomPlayers.length > 0
+      ? roomPlayers.map((p) => ({ id: p.id, username: p.username, score: 0, isMe: p.id === myId }))
+      : [{ id: myId, username: currentUser?.username ?? 'tú', score: 0, isMe: true }];
+    setPlayers(initial);
+  }, [challenge, currentUser, roomPlayers]);
+
+  // Sync leaderboard via socket
+  useEffect(() => {
+    if (loadStatus !== 'ready') return;
+    const socket = getSocket();
+
+    socket.on('leaderboard_update', ({ board }: { board: { id: string; username: string; score: number }[] }) => {
+      const myId = socket.id ?? currentUser?.id ?? 'me';
+      setPlayers(board.map((p) => ({ id: p.id, username: p.username, score: p.score, isMe: p.id === myId })));
+    });
+
+    return () => { socket.off('leaderboard_update'); };
+  }, [loadStatus, currentUser]);
 
   const resultRef   = useRef<HTMLIFrameElement>(null);
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -109,6 +134,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
 
     const score = calcScore(cssCode, challenge.targetCSS);
     setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
+    getSocket().emit('code_update', { score });
   }, [htmlCode, cssCode, challenge]);
 
   // handleEnd sin timeLeft ni players en deps — usa refs para evitar reinicios del timer

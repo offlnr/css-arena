@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Check, Users } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket, resetSocket } from '../services/socket';
+import { generateChallenge } from '../services/challengeGenerator';
+import type { Challenge } from '../data/challenges';
 import styles from './LobbyPage.module.css';
 
 interface LobbyPageProps {
@@ -24,7 +26,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 };
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack }) => {
-  const { currentRoom, currentUser } = useGameStore();
+  const { currentRoom, currentUser, setPendingChallenge, setRoomPlayers } = useGameStore();
 
   const [isReady,  setIsReady]  = useState(false);
   const [copied,   setCopied]   = useState(false);
@@ -32,6 +34,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
   const [roomCode, setRoomCode] = useState(currentRoom?.code ?? '');
   const [error,    setError]    = useState<string | null>(null);
   const [status,   setStatus]   = useState<'connecting' | 'ready' | 'error'>('connecting');
+  const [starting, setStarting] = useState(false);
 
   const startedRef = useRef(false);
 
@@ -95,8 +98,15 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
       setPlayers((prev) => prev.filter((p) => p.id !== id));
     });
 
-    socket.on('game_started', () => {
-      if (!startedRef.current) { startedRef.current = true; onStart(); }
+    socket.on('game_started', ({ challenge }: { challenge?: Challenge }) => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      if (challenge) setPendingChallenge(challenge);
+      setPlayers((current) => {
+        setRoomPlayers(current.map((p) => ({ id: p.id, username: p.username })));
+        return current;
+      });
+      onStart();
     });
 
     if (socket.connected) { init(); } else { socket.once('connect', init); socket.connect(); }
@@ -112,9 +122,12 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleStart = () => {
-    if (!canStart) return;
-    getSocket().emit('start_game', { roomCode });
+  const handleStart = async () => {
+    if (!canStart || starting) return;
+    setStarting(true);
+    let challenge: Challenge | undefined;
+    try { challenge = await generateChallenge(); } catch { /* fallback handled inside */ }
+    getSocket().emit('start_game', { roomCode, challenge });
   };
 
   const handleBack = () => {
@@ -234,7 +247,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
 
           {isHost ? (
             <button className={styles.startBtn} onClick={handleStart} disabled={!canStart}>
-              {canStart ? '▶ Iniciar partida' : 'Esperando que estés listo…'}
+              {starting ? 'Generando desafío…' : canStart ? '▶ Iniciar partida' : 'Esperando que estés listo…'}
             </button>
           ) : (
             <p className={styles.waitingText}>Esperando que el host inicie la partida…</p>

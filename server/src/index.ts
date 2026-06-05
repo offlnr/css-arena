@@ -101,9 +101,11 @@ io.on('connection', (socket) => {
     const room = getRoom(payload.roomCode);
     if (!room || room.hostId !== socket.id) return;
 
+    if (payload.challenge) room.challenge = payload.challenge;
+
     startGame(payload.roomCode);
     io.to(payload.roomCode).emit('game_started', {
-      challengeId: room.challengeId,
+      challenge: room.challenge,
       duration: room.duration,
     });
 

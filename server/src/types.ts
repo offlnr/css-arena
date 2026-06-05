@@ -18,6 +18,7 @@ export interface Room {
   status: 'waiting' | 'in_progress' | 'finished';
   players: Map<string, Player>;
   challengeId: string;
+  challenge?: ChallengeData;
   createdAt: Date;
   startedAt?: Date;
   timerInterval?: ReturnType<typeof setInterval>;
@@ -45,6 +46,18 @@ export interface CodeUpdatePayload {
   score: number;
 }
 
+export interface ChallengeData {
+  id: string;
+  title: string;
+  difficulty: string;
+  description: string;
+  startHTML: string;
+  startCSS: string;
+  targetHTML: string;
+  targetCSS: string;
+}
+
 export interface StartGamePayload {
   roomCode: string;
+  challenge?: ChallengeData;
 }
