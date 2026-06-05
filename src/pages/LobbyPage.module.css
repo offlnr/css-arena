@@ -1,0 +1,289 @@
+.container {
+  min-height: 100vh;
+  background-color: #0F1419;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid #3A4048;
+  background-color: rgba(15,20,25,0.85);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 1rem;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #A0A0A0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+}
+.backBtn:hover { color: #fff; }
+
+.logo { display: flex; align-items: center; gap: 0.5rem; }
+.logoIcon { font-size: 1.25rem; }
+.logoText { font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; }
+.headerSpacer { flex: 1; }
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  gap: 1.25rem;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Card ── */
+.card {
+  background: #181E27;
+  border: 1px solid #2A3140;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.difficultyBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.metaItem {
+  font-size: 0.8125rem;
+  color: #A0A0A0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Code section ── */
+.codeSection {
+  background: #0F1419;
+  border: 1px solid #2A3140;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.codeLabel {
+  font-size: 0.6875rem;
+  color: #707070;
+  letter-spacing: 0.08em;
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.codeValue {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #6366F1;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #2A3140;
+  border: none;
+  border-radius: 6px;
+  color: #A0A0A0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+}
+.copyBtn:hover { background: #3A4150; color: #fff; }
+
+.codeHint {
+  font-size: 0.75rem;
+  color: #505050;
+  margin: 0;
+}
+
+/* ── Players ── */
+.sectionLabel {
+  font-size: 0.6875rem;
+  color: #707070;
+  letter-spacing: 0.08em;
+}
+
+.playerList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: #0F1419;
+  border: 1px solid #2A3140;
+  border-radius: 8px;
+}
+
+.playerRowEmpty {
+  opacity: 0.4;
+}
+
+.playerAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #6366F1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.playerAvatarEmpty {
+  background: #2A3140;
+  color: #505050;
+}
+
+.playerName {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.playerNameEmpty {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #505050;
+  font-style: italic;
+}
+
+.hostBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: #6366F1;
+  color: #fff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.readyBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.readyBadgeOn {
+  background: rgba(34,197,94,0.15);
+  color: #22C55E;
+}
+
+.readyBadgeOff {
+  background: rgba(160,160,160,0.1);
+  color: #707070;
+}
+
+/* ── Actions ── */
+.actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.readyBtn {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 8px;
+  border: 2px solid #3A4048;
+  background: transparent;
+  color: #A0A0A0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.readyBtn:hover {
+  border-color: #22C55E;
+  color: #22C55E;
+}
+.readyBtnOn {
+  border-color: #22C55E;
+  background: rgba(34,197,94,0.1);
+  color: #22C55E;
+}
+
+.startBtn {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 8px;
+  border: none;
+  background: #6366F1;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.startBtn:hover:not(:disabled) { background: #4F51D9; }
+.startBtn:disabled {
+  background: #2A3140;
+  color: #505050;
+  cursor: not-allowed;
+}
+
+.waitingText {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #707070;
+  margin: 0;
+  padding: 0.5rem;
+}

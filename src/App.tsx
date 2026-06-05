@@ -1,15 +1,17 @@
 import { useState, useCallback } from 'react';
 import { IndexPage }   from './pages/IndexPage';
 import { RoomPage }    from './pages/RoomPage';
+import { LobbyPage }   from './pages/LobbyPage';
 import { ArenaPage }   from './pages/ArenaPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { useGameStore } from './stores/gameStore';
 import type { User, Room, GameResult } from './types';
 
-type AppPage = 'index' | 'room' | 'arena' | 'results';
+type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
 
 function App() {
-  const [page, setPage] = useState<AppPage>('index');
+  const [page, setPage]     = useState<AppPage>('index');
+  const [isHost, setIsHost] = useState(false);
   const [results, setResults] = useState<GameResult[]>([]);
   const { setCurrentUser, setCurrentRoom, reset } = useGameStore();
 
@@ -19,9 +21,16 @@ function App() {
     setPage('room');
   }, [setCurrentUser]);
 
-  const handleRoomReady = useCallback((room: Room) => {
+  const handleRoomCreated = useCallback((room: Room) => {
     setCurrentRoom(room);
-    setPage('arena');
+    setIsHost(true);
+    setPage('lobby');
+  }, [setCurrentRoom]);
+
+  const handleRoomJoined = useCallback((room: Room) => {
+    setCurrentRoom(room);
+    setIsHost(false);
+    setPage('lobby');
   }, [setCurrentRoom]);
 
   const handleGameEnd = useCallback((gameResults: GameResult[]) => {
@@ -47,8 +56,16 @@ function App() {
       {page === 'room' && (
         <RoomPage
           onBack={() => setPage('index')}
-          onRoomCreated={handleRoomReady}
-          onRoomJoined={handleRoomReady}
+          onRoomCreated={handleRoomCreated}
+          onRoomJoined={handleRoomJoined}
+        />
+      )}
+
+      {page === 'lobby' && (
+        <LobbyPage
+          isHost={isHost}
+          onStart={() => setPage('arena')}
+          onBack={() => setPage('room')}
         />
       )}
 
