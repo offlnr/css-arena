@@ -102,7 +102,7 @@ const CSS_PROPS: { prop: string; values?: string[] }[] = [
 export function registerCssCompletions(monaco: Monaco) {
   monaco.languages.registerCompletionItemProvider('css', {
     triggerCharacters: ['-', ':', ' ', '\n'],
-    provideCompletionItems(model, position) {
+    provideCompletionItems(model: import('monaco-editor').editor.ITextModel, position: import('monaco-editor').Position) {
       const lineText = model.getValueInRange({
         startLineNumber: position.lineNumber,
         startColumn: 1,
