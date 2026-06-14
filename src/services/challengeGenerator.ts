@@ -1,6 +1,7 @@
 import Groq from 'groq-sdk';
 import type { Challenge } from '../data/challenges';
 import { CHALLENGES } from '../data/challenges';
+import { formatHTML } from '../utils/formatHTML';
 
 const PROMPT = `You are a CSS challenge generator for a competitive coding game.
 
@@ -71,7 +72,7 @@ export async function generateChallenge(): Promise<Challenge> {
       title: data.title,
       difficulty: data.difficulty,
       description: data.description,
-      startHTML: data.html,
+      startHTML: formatHTML(data.html),
       startCSS: '/* Escribe tu CSS aquí */\n',
       targetHTML: data.html,
       targetCSS: data.css,
