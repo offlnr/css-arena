@@ -38,11 +38,6 @@ function App() {
   const handleGameEnd = useCallback((gameResults: GameResult[]) => {
     setResults(gameResults);
     setPage('results');
-    const { currentUser: user } = useGameStore.getState();
-    if (user) {
-      const myResult = gameResults.find((r) => r.user.username === user.username);
-      recordResult(user.username, myResult?.rank === 1);
-    }
   }, []);
 
   const handleNewGame = useCallback(() => {
