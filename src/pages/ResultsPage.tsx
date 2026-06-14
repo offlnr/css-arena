@@ -134,7 +134,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) 
                 </button>
               </div>
               <pre className={styles.codeBlock}>
-                {codeTab === 'html' ? challenge.targetHTML : challenge.targetCSS}
+                {codeTab === 'html' ? challenge.targetHTML : (selected?.css || '/* Sin CSS escrito */')}
               </pre>
             </div>
           ) : (
