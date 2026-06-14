@@ -57,6 +57,7 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       username: payload.username,
       score: 0,
+      css: '',
       isReady: false,
     };
     addPlayer(room.code, player);
@@ -79,6 +80,7 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       username: payload.username,
       score: 0,
+      css: '',
       isReady: false,
     };
     addPlayer(room.code, player);
@@ -92,6 +94,9 @@ io.on('connection', (socket) => {
       ok: true,
       roomCode: room.code,
       roomName: room.name,
+      duration: room.duration / 60,
+      maxPlayers: room.maxPlayers,
+      difficulty: room.difficulty,
       players: getLeaderboard(room.code),
     });
   });
@@ -141,7 +146,7 @@ io.on('connection', (socket) => {
   // ── code_update ───────────────────────────────────────────────────────────
   socket.on('code_update', (payload: CodeUpdatePayload) => {
     if (!currentRoomCode) return;
-    updateScore(currentRoomCode, socket.id, payload.score);
+    updateScore(currentRoomCode, socket.id, payload.score, payload.css);
     const board = getLeaderboard(currentRoomCode);
     io.to(currentRoomCode).emit('leaderboard_update', { board });
   });

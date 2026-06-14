@@ -3,6 +3,7 @@ export interface Player {
   socketId: string;
   username: string;
   score: number;
+  css: string;
   isReady: boolean;
 }
 
@@ -44,6 +45,7 @@ export interface JoinRoomPayload {
 export interface CodeUpdatePayload {
   roomCode: string;
   score: number;
+  css?: string;
 }
 
 export interface ChallengeData {

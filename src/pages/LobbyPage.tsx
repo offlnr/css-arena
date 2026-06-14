@@ -26,7 +26,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 };
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack }) => {
-  const { currentRoom, currentUser, setPendingChallenge, setRoomPlayers } = useGameStore();
+  const { currentRoom, currentUser, setCurrentRoom, setPendingChallenge, setRoomPlayers } = useGameStore();
 
   const [isReady,  setIsReady]  = useState(false);
   const [copied,   setCopied]   = useState(false);
@@ -69,9 +69,23 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
         }, (ack: {
           ok: boolean;
           error?: string;
+          roomName?: string;
+          duration?: number;
+          maxPlayers?: number;
+          difficulty?: 'Fácil' | 'Medio' | 'Difícil';
           players?: { id: string; username: string; score: number }[];
         }) => {
           if (!ack.ok) { setError(ack.error ?? 'No se pudo unir a la sala'); setStatus('error'); return; }
+          // Sync room settings from host so joined player sees correct data
+          if (currentRoom && ack.roomName) {
+            setCurrentRoom({
+              ...currentRoom,
+              name: ack.roomName,
+              duration: ack.duration ?? currentRoom.duration,
+              maxPlayers: ack.maxPlayers ?? currentRoom.maxPlayers,
+              difficulty: ack.difficulty ?? currentRoom.difficulty,
+            });
+          }
           const list: PlayerInfo[] = (ack.players ?? []).map((p) => ({
             id: p.id, username: p.username, isMe: p.id === socket.id, isReady: false,
           }));

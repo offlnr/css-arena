@@ -85,8 +85,10 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     if (loadStatus !== 'ready') return;
     const socket = getSocket();
 
-    socket.on('leaderboard_update', ({ board }: { board: { id: string; username: string; score: number }[] }) => {
+    socket.on('leaderboard_update', ({ board }: { board: { id: string; username: string; score: number; css: string }[] }) => {
       const myId = socket.id ?? currentUser?.id ?? 'me';
+      // Store opponents' CSS so handleEnd can include it in results
+      board.forEach((p) => { if (p.id !== myId && p.css) playerCssRef.current.set(p.id, p.css); });
       setPlayers(board.map((p) => ({ id: p.id, username: p.username, score: p.score, isMe: p.id === myId })));
     });
 
@@ -101,11 +103,12 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     };
   }, [loadStatus, currentUser]);
 
-  const resultRef   = useRef<HTMLIFrameElement>(null);
-  const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playersRef  = useRef<Player[]>([]);
-  const timeLeftRef = useRef(timeLeft);
-  const cssCodeRef  = useRef(cssCode);
+  const resultRef    = useRef<HTMLIFrameElement>(null);
+  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playersRef   = useRef<Player[]>([]);
+  const timeLeftRef  = useRef(timeLeft);
+  const cssCodeRef   = useRef(cssCode);
+  const playerCssRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => { playersRef.current  = players;  }, [players]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
@@ -124,6 +127,13 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     doc.write(buildDoc(htmlCode, cssCode));
     doc.close();
 
+    // Score = 0 until the player actually writes CSS
+    if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) {
+      setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score: 0 } : p)));
+      getSocket().emit('code_update', { score: 0, css: '' });
+      return;
+    }
+
     // Debounce visual score to avoid capturing on every keystroke
     if (visualTimerRef.current) clearTimeout(visualTimerRef.current);
     visualTimerRef.current = setTimeout(async () => {
@@ -133,7 +143,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
           htmlCode, cssCode,
         );
         setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
-        getSocket().emit('code_update', { score });
+        getSocket().emit('code_update', { score, css: cssCode });
       } catch {
         // visual capture failed, skip score update
       }
@@ -153,7 +163,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       similarity: Math.round(p.score),
       submittedAt: new Date(),
       time: elapsed,
-      ...(p.isMe ? { css: cssCodeRef.current } : {}),
+      css: p.isMe ? cssCodeRef.current : (playerCssRef.current.get(p.id) ?? ''),
     }));
 
     setGameState({

@@ -47,19 +47,21 @@ export function removePlayer(roomCode: string, playerId: string): void {
   }
 }
 
-export function updateScore(roomCode: string, playerId: string, score: number): void {
+export function updateScore(roomCode: string, playerId: string, score: number, css?: string): void {
   const room = rooms.get(roomCode);
   if (!room) return;
   const player = room.players.get(playerId);
-  if (player) player.score = score;
+  if (!player) return;
+  player.score = score;
+  if (css !== undefined) player.css = css;
 }
 
-export function getLeaderboard(roomCode: string): { id: string; username: string; score: number }[] {
+export function getLeaderboard(roomCode: string): { id: string; username: string; score: number; css: string }[] {
   const room = rooms.get(roomCode);
   if (!room) return [];
   return [...room.players.values()]
     .sort((a, b) => b.score - a.score)
-    .map(({ id, username, score }) => ({ id, username, score }));
+    .map(({ id, username, score, css }) => ({ id, username, score, css }));
 }
 
 export function startGame(roomCode: string): boolean {
