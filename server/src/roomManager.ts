@@ -80,6 +80,17 @@ export function finishGame(roomCode: string): void {
   clearInterval(room.timerInterval);
 }
 
+export function resetRoom(roomCode: string): boolean {
+  const room = rooms.get(roomCode);
+  if (!room) return false;
+  clearInterval(room.timerInterval);
+  room.timerInterval = undefined;
+  room.status = 'waiting';
+  room.challenge = undefined;
+  room.players.forEach((p) => { p.score = 0; p.css = ''; p.isReady = false; });
+  return true;
+}
+
 export function getAllRooms(): Room[] {
   return [...rooms.values()];
 }

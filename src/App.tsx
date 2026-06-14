@@ -11,8 +11,9 @@ import type { User, Room, GameResult } from './types';
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
 
 function App() {
-  const [page, setPage]     = useState<AppPage>('index');
-  const [isHost, setIsHost] = useState(false);
+  const [page, setPage]       = useState<AppPage>('index');
+  const [isHost, setIsHost]   = useState(false);
+  const [isRematch, setIsRematch] = useState(false);
   const [results, setResults] = useState<GameResult[]>([]);
   const { setCurrentUser, setCurrentRoom, reset } = useGameStore();
 
@@ -47,8 +48,15 @@ function App() {
   const handleNewGame = useCallback(() => {
     reset();
     setResults([]);
+    setIsRematch(false);
     setPage('index');
   }, [reset]);
+
+  const handleRematch = useCallback(() => {
+    setResults([]);
+    setIsRematch(true);
+    setPage('lobby');
+  }, []);
 
   return (
     <>
@@ -70,8 +78,9 @@ function App() {
       {page === 'lobby' && (
         <LobbyPage
           isHost={isHost}
-          onStart={() => setPage('arena')}
-          onBack={() => setPage('room')}
+          isRematch={isRematch}
+          onStart={() => { setIsRematch(false); setPage('arena'); }}
+          onBack={() => { setIsRematch(false); setPage('room'); }}
         />
       )}
 
@@ -85,7 +94,9 @@ function App() {
       {page === 'results' && (
         <ResultsPage
           results={results}
+          isHost={isHost}
           onNewGame={handleNewGame}
+          onRematch={handleRematch}
         />
       )}
     </>

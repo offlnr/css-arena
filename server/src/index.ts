@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import {
   createRoom, getRoom, addPlayer, removePlayer,
-  updateScore, getLeaderboard, startGame, finishGame, getAllRooms,
+  updateScore, getLeaderboard, startGame, finishGame, resetRoom, getAllRooms,
 } from './roomManager.js';
 import {
   CreateRoomPayload, JoinRoomPayload, CodeUpdatePayload, StartGamePayload,
@@ -149,6 +149,16 @@ io.on('connection', (socket) => {
     updateScore(currentRoomCode, socket.id, payload.score, payload.css);
     const board = getLeaderboard(currentRoomCode);
     io.to(currentRoomCode).emit('leaderboard_update', { board });
+  });
+
+  // ── rematch ───────────────────────────────────────────────────────────────
+  socket.on('rematch', () => {
+    if (!currentRoomCode) return;
+    const room = getRoom(currentRoomCode);
+    if (!room || room.hostId !== socket.id) return;
+    resetRoom(currentRoomCode);
+    const players = getLeaderboard(currentRoomCode).map(({ id, username }) => ({ id, username }));
+    io.to(currentRoomCode).emit('game_reset', { players });
   });
 
   // ── disconnect ────────────────────────────────────────────────────────────

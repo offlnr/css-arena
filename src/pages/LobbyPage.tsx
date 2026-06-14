@@ -8,6 +8,7 @@ import styles from './LobbyPage.module.css';
 
 interface LobbyPageProps {
   isHost: boolean;
+  isRematch?: boolean;
   onStart: () => void;
   onBack: () => void;
 }
@@ -25,15 +26,15 @@ const DIFFICULTY_COLOR: Record<string, string> = {
   'Difícil': '#EF4444',
 };
 
-export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack }) => {
-  const { currentRoom, currentUser, setCurrentRoom, setPendingChallenge, setRoomPlayers } = useGameStore();
+export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart, onBack }) => {
+  const { currentRoom, currentUser, setCurrentRoom, setPendingChallenge, setRoomPlayers, roomPlayers } = useGameStore();
 
   const [isReady,  setIsReady]  = useState(false);
   const [copied,   setCopied]   = useState(false);
   const [players,  setPlayers]  = useState<PlayerInfo[]>([]);
   const [roomCode, setRoomCode] = useState(currentRoom?.code ?? '');
   const [error,    setError]    = useState<string | null>(null);
-  const [status,   setStatus]   = useState<'connecting' | 'ready' | 'error'>('connecting');
+  const [status,   setStatus]   = useState<'connecting' | 'ready' | 'error'>(isRematch ? 'ready' : 'connecting');
   const [starting, setStarting] = useState(false);
 
   const startedRef = useRef(false);
@@ -44,10 +45,24 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, onStart, onBack })
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Seed player list from store when returning from results (rematch)
+  useEffect(() => {
+    if (!isRematch || roomPlayers.length === 0) return;
+    const socket = getSocket();
+    const myId = socket.id ?? '';
+    setPlayers(roomPlayers.map((p) => ({ id: p.id, username: p.username, isMe: p.id === myId, isReady: false })));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRematch]);
+
   useEffect(() => {
     const socket = getSocket();
 
     const init = () => {
+      if (isRematch) {
+        // Already in the socket room — skip create/join
+        setRoomCode(currentRoom?.code ?? '');
+        return;
+      }
       if (isHost) {
         socket.emit('create_room', {
           roomName:   currentRoom?.name       ?? 'Sala',

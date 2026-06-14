@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Code2 } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
+import { getSocket } from '../services/socket';
 import { getStats } from '../utils/playerStats';
 import { CHALLENGES } from '../data/challenges';
 import type { GameResult } from '../types';
@@ -10,7 +11,9 @@ const COUNTDOWN_SECONDS = 15;
 
 interface ResultsPageProps {
   results: GameResult[];
+  isHost: boolean;
   onNewGame: () => void;
+  onRematch: () => void;
 }
 
 const TROPHY: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -23,50 +26,67 @@ function scoreColor(s: number): string {
   return s >= 75 ? '#22C55E' : s >= 40 ? '#FBBF24' : '#EF4444';
 }
 
-export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) => {
-  const { currentRoom, currentUser, gameState } = useGameStore();
+export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNewGame, onRematch }) => {
+  const { currentRoom, currentUser, gameState, setRoomPlayers } = useGameStore();
   const challenge = gameState?.challenge ?? CHALLENGES[0];
 
-  const [selectedId, setSelectedId] = useState<string>(currentUser?.id ?? results[0]?.user.id ?? '');
+  const [selectedId, setSelectedId] = useState<string>(results[0]?.user.id ?? '');
   const [showCode, setShowCode]      = useState(false);
   const [codeTab, setCodeTab]        = useState<'html' | 'css'>('css');
   const [countdown, setCountdown]    = useState(COUNTDOWN_SECONDS);
-  const onNewGameRef = useRef(onNewGame);
-  useEffect(() => { onNewGameRef.current = onNewGame; }, [onNewGame]);
+  const onRematchRef = useRef(onRematch);
+  useEffect(() => { onRematchRef.current = onRematch; }, [onRematch]);
 
-  // Auto-restart countdown
+  // Listen for game_reset from server (host triggers rematch → everyone navigates to lobby)
+  useEffect(() => {
+    const socket = getSocket();
+    socket.on('game_reset', ({ players }: { players: { id: string; username: string }[] }) => {
+      setRoomPlayers(players);
+      onRematchRef.current();
+    });
+    return () => { socket.off('game_reset'); };
+  }, [setRoomPlayers]);
+
+  // Auto-restart countdown — all emit rematch; server only processes from host
   useEffect(() => {
     const id = setInterval(() => {
       setCountdown((prev) => {
-        if (prev <= 1) { clearInterval(id); onNewGameRef.current(); return 0; }
+        if (prev <= 1) {
+          clearInterval(id);
+          getSocket().emit('rematch');
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(id);
   }, []);
 
-  const stats       = currentUser ? getStats(currentUser.username) : null;
-  const myResult    = results.find((r) => r.user.id === currentUser?.id);
-  const iWon        = myResult?.rank === 1;
+  const stats    = currentUser ? getStats(currentUser.username) : null;
+  // Match by username since results use socket.id but currentUser uses a local random id
+  const myResult = results.find((r) => r.user.username === currentUser?.username);
+  const iWon     = myResult?.rank === 1;
 
   const selected = results.find((r) => r.user.id === selectedId) ?? results[0];
-  const isMe     = selected?.user.id === currentUser?.id;
+  const isMe     = selected?.user.username === currentUser?.username;
 
   return (
     <div className={styles.container}>
       {/* ── Header ── */}
       <header className={styles.header}>
-        <button className={styles.backButton} onClick={onNewGame}>
-          ← Inicio
-        </button>
         <span className={styles.headerTitle}>Resultados Finales</span>
         {currentRoom && (
           <span className={styles.roomCodeBadge}>SALA-{currentRoom.code}</span>
         )}
         <div className={styles.headerSpacer} />
-        <button className={styles.newGameButton} onClick={onNewGame}>
-          <RefreshCw size={14} />
-          Nueva partida ({countdown}s)
+        {currentRoom && isHost && (
+          <button className={styles.newGameButton} onClick={() => getSocket().emit('rematch')} style={{ marginRight: 8 }}>
+            <RefreshCw size={14} />
+            Revancha ({countdown}s)
+          </button>
+        )}
+        <button className={styles.backButton} onClick={onNewGame}>
+          ← Inicio
         </button>
       </header>
 
