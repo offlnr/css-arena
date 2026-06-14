@@ -110,7 +110,15 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       setPlayers(board.map((p) => ({ id: p.id, username: p.username, score: p.score, isMe: p.id === myId })));
     });
 
-    return () => { socket.off('leaderboard_update'); };
+    // Use server timer as source of truth so all clients stay in sync
+    socket.on('time_sync', ({ timeLeft: serverTime }: { timeLeft: number }) => {
+      setTimeLeft(serverTime);
+    });
+
+    return () => {
+      socket.off('leaderboard_update');
+      socket.off('time_sync');
+    };
   }, [loadStatus, currentUser]);
 
   const resultRef   = useRef<HTMLIFrameElement>(null);
