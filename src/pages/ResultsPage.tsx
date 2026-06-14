@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Code2 } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
+import { getStats } from '../utils/playerStats';
 import { CHALLENGES } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ResultsPage.module.css';
+
+const COUNTDOWN_SECONDS = 15;
 
 interface ResultsPageProps {
   results: GameResult[];
@@ -27,6 +30,24 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) 
   const [selectedId, setSelectedId] = useState<string>(currentUser?.id ?? results[0]?.user.id ?? '');
   const [showCode, setShowCode]      = useState(false);
   const [codeTab, setCodeTab]        = useState<'html' | 'css'>('css');
+  const [countdown, setCountdown]    = useState(COUNTDOWN_SECONDS);
+  const onNewGameRef = useRef(onNewGame);
+  useEffect(() => { onNewGameRef.current = onNewGame; }, [onNewGame]);
+
+  // Auto-restart countdown
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(id); onNewGameRef.current(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const stats       = currentUser ? getStats(currentUser.username) : null;
+  const myResult    = results.find((r) => r.user.id === currentUser?.id);
+  const iWon        = myResult?.rank === 1;
 
   const selected = results.find((r) => r.user.id === selectedId) ?? results[0];
   const isMe     = selected?.user.id === currentUser?.id;
@@ -45,9 +66,30 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) 
         <div className={styles.headerSpacer} />
         <button className={styles.newGameButton} onClick={onNewGame}>
           <RefreshCw size={14} />
-          Nueva partida
+          Nueva partida ({countdown}s)
         </button>
       </header>
+
+      {/* ── Streak / win banner ── */}
+      {stats && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24,
+          padding: '10px 24px', background: iWon ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.06)',
+          borderBottom: `1px solid ${iWon ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.15)'}`,
+        }}>
+          <span style={{ fontSize: '1.1rem' }}>
+            {iWon ? '🏆 ¡Victoria!' : '💀 Derrota'}
+          </span>
+          {stats.streak > 1 && (
+            <span style={{ color: '#FBBF24', fontWeight: 700, fontSize: '0.95rem' }}>
+              🔥 Racha: {stats.streak}
+            </span>
+          )}
+          <span style={{ color: '#A0A0A0', fontSize: '0.85rem' }}>
+            {stats.wins} victoria{stats.wins !== 1 ? 's' : ''} · {stats.gamesPlayed} partida{stats.gamesPlayed !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <div className={styles.body}>

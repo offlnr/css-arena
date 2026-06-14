@@ -5,6 +5,7 @@ import { LobbyPage }   from './pages/LobbyPage';
 import { ArenaPage }   from './pages/ArenaPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { useGameStore } from './stores/gameStore';
+import { recordResult } from './utils/playerStats';
 import type { User, Room, GameResult } from './types';
 
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
@@ -36,6 +37,11 @@ function App() {
   const handleGameEnd = useCallback((gameResults: GameResult[]) => {
     setResults(gameResults);
     setPage('results');
+    const { currentUser: user } = useGameStore.getState();
+    if (user) {
+      const myResult = gameResults.find((r) => r.user.username === user.username);
+      recordResult(user.username, myResult?.rank === 1);
+    }
   }, []);
 
   const handleNewGame = useCallback(() => {
