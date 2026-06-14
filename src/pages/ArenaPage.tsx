@@ -5,6 +5,7 @@ import { useGameStore } from '../stores/gameStore';
 import { generateChallenge } from '../services/challengeGenerator';
 import { getSocket } from '../services/socket';
 import { registerCssCompletions } from '../data/cssCompletions';
+import { calcVisualScore } from '../utils/visualScore';
 import type { Challenge } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ArenaPage.module.css';
@@ -27,27 +28,6 @@ function buildDoc(html: string, css: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script>document.addEventListener('click',function(e){var el=e.target;while(el){if(el.tagName==='A'||el.tagName==='BUTTON'){e.preventDefault();e.stopPropagation();return;}el=el.parentElement;}},true);<\/script><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#f0f2f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}${css}</style></head><body>${html}</body></html>`;
 }
 
-function calcScore(userCSS: string, targetCSS: string): number {
-  if (!userCSS.trim()) return 0;
-  const propRe = /([\w-]+)\s*:\s*([^;{}\n]+)/g;
-  const extract = (css: string) => {
-    const m = new Map<string, string>();
-    let match;
-    while ((match = propRe.exec(css)) !== null) {
-      m.set(match[1].trim().toLowerCase(), match[2].trim().toLowerCase());
-    }
-    propRe.lastIndex = 0;
-    return m;
-  };
-  const target = extract(targetCSS);
-  const user   = extract(userCSS);
-  if (target.size === 0) return 0;
-  let hits = 0;
-  target.forEach((val, key) => {
-    if (user.has(key)) hits += user.get(key) === val ? 1 : 0.4;
-  });
-  return Math.min(Math.round((hits / target.size) * 100), 100);
-}
 
 export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   const { currentRoom, currentUser, setGameState, pendingChallenge, setPendingChallenge, roomPlayers } = useGameStore();
@@ -131,6 +111,8 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { cssCodeRef.current  = cssCode;  }, [cssCode]);
 
+  const visualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Actualizar iframe con document.write — confiable en todos los navegadores
   useEffect(() => {
     if (!challenge) return;
@@ -142,9 +124,20 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     doc.write(buildDoc(htmlCode, cssCode));
     doc.close();
 
-    const score = calcScore(cssCode, challenge.targetCSS);
-    setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
-    getSocket().emit('code_update', { score });
+    // Debounce visual score to avoid capturing on every keystroke
+    if (visualTimerRef.current) clearTimeout(visualTimerRef.current);
+    visualTimerRef.current = setTimeout(async () => {
+      try {
+        const score = await calcVisualScore(
+          challenge.targetHTML, challenge.targetCSS,
+          htmlCode, cssCode,
+        );
+        setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
+        getSocket().emit('code_update', { score });
+      } catch {
+        // visual capture failed, skip score update
+      }
+    }, 800);
   }, [htmlCode, cssCode, challenge]);
 
   // handleEnd sin timeLeft ni players en deps — usa refs para evitar reinicios del timer
