@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
-import { Copy, Users, Globe, Check } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Copy, Users, Globe, Check, RefreshCw } from 'lucide-react';
 import type { Room } from '../types';
 import { useGameStore } from '../stores/gameStore';
 import styles from './RoomPage.module.css';
+
+const SERVER_URL = (import.meta.env.VITE_SERVER_URL as string | undefined) ?? 'http://localhost:3001';
+
+interface PublicRoom {
+  code: string;
+  name: string;
+  players: number;
+  maxPlayers: number;
+  difficulty: string;
+  duration: number; // seconds
+}
 
 type TabType = 'create' | 'join';
 type Difficulty = 'Fácil' | 'Medio' | 'Difícil';
@@ -37,6 +48,25 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
   const [difficulty, setDifficulty] = useState<Difficulty>('Medio');
   const [isPublic, setIsPublic]   = useState(false);
   const [copied, setCopied]       = useState(false);
+  const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+
+  const fetchRooms = useCallback(async () => {
+    setLoadingRooms(true);
+    try {
+      const res = await fetch(`${SERVER_URL}/rooms`);
+      const data = await res.json() as PublicRoom[];
+      setPublicRooms(data);
+    } catch {
+      setPublicRooms([]);
+    } finally {
+      setLoadingRooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'join') fetchRooms();
+  }, [activeTab, fetchRooms]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(roomCode).catch(() => {});
@@ -209,8 +239,62 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
             </div>
           ) : (
             <div className={styles.form}>
+              {/* Public rooms list */}
               <div className={styles.field}>
-                <label className={styles.label}>CÓDIGO DE SALA</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <label className={styles.label} style={{ margin: 0 }}>SALAS DISPONIBLES</label>
+                  <button
+                    onClick={fetchRooms}
+                    disabled={loadingRooms}
+                    style={{ background: 'none', border: 'none', color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}
+                  >
+                    <RefreshCw size={12} style={{ animation: loadingRooms ? 'spin 1s linear infinite' : 'none' }} />
+                    Actualizar
+                  </button>
+                </div>
+                {loadingRooms ? (
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>Buscando salas…</p>
+                ) : publicRooms.length === 0 ? (
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>No hay salas públicas disponibles.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {publicRooms.map((r) => (
+                      <button
+                        key={r.code}
+                        onClick={() => setJoinCode(r.code)}
+                        style={{
+                          background: joinCode === r.code ? '#1E2030' : '#13151A',
+                          border: `1px solid ${joinCode === r.code ? '#6366F1' : '#2A2D3A'}`,
+                          borderRadius: 8,
+                          padding: '10px 14px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: '#E0E0E0', fontWeight: 600, fontSize: '0.9rem' }}>{r.name}</div>
+                          <div style={{ color: '#707070', fontSize: '0.78rem', marginTop: 2 }}>
+                            {Math.round(r.duration / 60)} min · {r.difficulty}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#A0A0A0', fontSize: '0.8rem' }}>{r.players}/{r.maxPlayers}</span>
+                          <Users size={13} color="#A0A0A0" />
+                          <span style={{ color: '#6366F1', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.1em' }}>{r.code}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Manual code input */}
+              <div className={styles.field}>
+                <label className={styles.label}>O INGRESA UN CÓDIGO MANUALMENTE</label>
                 <input
                   className={styles.input}
                   value={joinCode}
@@ -220,9 +304,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                   style={{ letterSpacing: '0.12em', fontFamily: 'JetBrains Mono, Fira Code, monospace' }}
                 />
               </div>
-              <p style={{ fontSize: '0.8125rem', color: '#707070', margin: 0 }}>
-                Pide el código de sala a quien creó la partida.
-              </p>
+
               <button
                 className={styles.createButton}
                 onClick={handleJoin}
