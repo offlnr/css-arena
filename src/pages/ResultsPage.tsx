@@ -152,20 +152,18 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, onNewGame }) 
                 />
               </div>
 
-              {/* Player result — for demo we show the target with varying opacity */}
               <div className={styles.splitPane}>
-                <div className={styles.splitLabel}>TU RESULTADO</div>
+                <div className={styles.splitLabel}>
+                  {isMe ? 'TU RESULTADO' : `RESULTADO DE ${selected?.user.username.toUpperCase()}`}
+                </div>
                 <iframe
                   srcDoc={buildDoc(
                     challenge.targetHTML,
-                    isMe
-                      ? (gameState?.challenge?.targetCSS ?? challenge.targetCSS)
-                      : challenge.targetCSS
+                    selected?.css ?? ''
                   )}
                   sandbox="allow-scripts"
                   className={styles.previewFrame}
-                  title="Tu resultado"
-                  style={{ opacity: isMe ? 1 : 0.7 + (selected?.similarity ?? 0) / 300 }}
+                  title="Resultado del jugador"
                 />
               </div>
             </div>

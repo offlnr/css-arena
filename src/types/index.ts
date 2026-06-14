@@ -45,6 +45,7 @@ export interface GameResult {
   similarity: number;
   submittedAt: Date;
   time: number; // segundos
+  css?: string;
 }
 
 // Estado del juego

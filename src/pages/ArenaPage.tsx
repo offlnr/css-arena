@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { LogOut, BarChart2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { generateChallenge } from '../services/challengeGenerator';
 import { getSocket } from '../services/socket';
@@ -125,9 +125,11 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const playersRef  = useRef<Player[]>([]);
   const timeLeftRef = useRef(timeLeft);
+  const cssCodeRef  = useRef(cssCode);
 
   useEffect(() => { playersRef.current  = players;  }, [players]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+  useEffect(() => { cssCodeRef.current  = cssCode;  }, [cssCode]);
 
   // Actualizar iframe con document.write — confiable en todos los navegadores
   useEffect(() => {
@@ -158,6 +160,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       similarity: Math.round(p.score),
       submittedAt: new Date(),
       time: elapsed,
+      ...(p.isMe ? { css: cssCodeRef.current } : {}),
     }));
 
     setGameState({
@@ -265,10 +268,6 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         </div>
 
         <div className={styles.headerRight}>
-          <button className={styles.headerBtn} onClick={handleEnd}>
-            <BarChart2 size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-            Resultados
-          </button>
           <button className={styles.headerBtn} onClick={onExit}>
             <LogOut size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />
             Salir
