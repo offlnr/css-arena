@@ -5,7 +5,6 @@ import { LobbyPage }   from './pages/LobbyPage';
 import { ArenaPage }   from './pages/ArenaPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { useGameStore } from './stores/gameStore';
-import { recordResult } from './utils/playerStats';
 import type { User, Room, GameResult } from './types';
 
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';

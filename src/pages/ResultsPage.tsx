@@ -2,12 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Code2 } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../services/socket';
-import { getStats } from '../utils/playerStats';
 import { CHALLENGES } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ResultsPage.module.css';
-
-const COUNTDOWN_SECONDS = 15;
 
 interface ResultsPageProps {
   results: GameResult[];
