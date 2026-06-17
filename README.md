@@ -1,26 +1,53 @@
-# CSS Arena
+# ⚡ CSS Arena
 
-A real-time multiplayer CSS challenge game. Players compete to replicate an AI-generated UI component using HTML and CSS within a time limit.
+> **Multiplayer CSS battle game.** Race against other players to replicate an AI-generated UI component using HTML & CSS — whoever gets closest wins.
 
-## How it works
+---
 
-1. **Create or join a room** — set a room name, time limit, difficulty, and max players
-2. **Arena** — an AI generates a unique UI challenge each match; write HTML and CSS to match it as closely as possible
-3. **Results** — players are ranked by similarity score at the end of the round
+## What is it?
+
+CSS Arena drops all players into the same challenge: an AI generates a unique UI component, you see the target, and you have a limited time to match it pixel by pixel using your own HTML and CSS. Your score is calculated visually — the closer your result looks to the target, the higher you rank.
+
+Every match is unique. No two challenges repeat.
+
+---
+
+## Features
+
+- **AI-generated challenges** — Google Gemini creates a new UI component for every match
+- **Live preview** — your result renders in real time as you type
+- **Visual scoring** — similarity is measured by comparing rendered pixels, not just code
+- **Real-time leaderboard** — see everyone's score update live during the match
+- **Monaco Editor** — VS Code-grade editor with CSS autocompletion and context-aware suggestions
+- **Room system** — create or join rooms with custom time limits and difficulty
+
+---
+
+## How a match works
+
+```
+1. Create or join a room  →  set time limit + difficulty
+2. AI generates a unique challenge
+3. You get the target preview + a blank editor
+4. Write HTML & CSS to match it as closely as possible
+5. Time runs out → scores are locked → winner is revealed
+```
+
+---
 
 ## Tech stack
 
-**Frontend**
-- React 19 + TypeScript + Vite
-- Monaco Editor (in-browser code editor)
-- Tailwind CSS + CSS Modules
-- Zustand (state management)
-- Socket.io client (real-time)
-- Google Gemini AI (challenge generation)
+| Layer | Tech |
+|---|---|
+| Frontend | React 19 + TypeScript + Vite |
+| Editor | Monaco Editor (`@monaco-editor/react`) |
+| Styling | Tailwind CSS + CSS Modules |
+| State | Zustand |
+| Real-time | Socket.io client/server |
+| AI | Google Gemini (`@google/generative-ai`) |
+| Backend | Node.js + Express + Socket.io |
 
-**Backend**
-- Node.js + Express
-- Socket.io (room management, live leaderboard, server-side timer)
+---
 
 ## Getting started
 
@@ -29,15 +56,17 @@ A real-time multiplayer CSS challenge game. Players compete to replicate an AI-g
 - Node.js 18+
 - A [Google Gemini API key](https://aistudio.google.com/app/apikey)
 
-### Setup
+### Install
 
 ```bash
-# Install frontend dependencies
+# Frontend
 npm install
 
-# Install backend dependencies
+# Backend
 cd server && npm install && cd ..
 ```
+
+### Environment
 
 Create a `.env` file in the project root:
 
@@ -56,11 +85,21 @@ cd server && npm run dev
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173) and start playing.
+
+---
 
 ## Scoring
 
-Each submission is scored by comparing CSS properties between the player's code and the target. Exact matches score full points; partial matches (correct property, wrong value) score partial credit. Final score is 0–100%.
+Scores are calculated by rendering both the target and your submission in a canvas, then comparing them pixel by pixel. This means visual accuracy is what counts — not how clean your code is.
+
+| Score | Result |
+|---|---|
+| 75 – 100% | Strong match |
+| 40 – 74% | Partial match |
+| 0 – 39% | Far off |
+
+---
 
 ## License
 
