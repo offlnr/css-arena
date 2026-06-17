@@ -148,12 +148,23 @@ io.on('connection', (socket) => {
   socket.on('code_update', async (payload: CodeUpdatePayload) => {
     if (!currentRoomCode) return;
     const room = getRoom(currentRoomCode);
-    if (!room?.challenge) return;
+
+    // Use server-stored challenge or fall back to target sent by client
+    const challenge = room?.challenge ?? payload.target;
+    if (!challenge) {
+      console.warn('[scorer] no challenge for room', currentRoomCode);
+      return;
+    }
+
+    // Cache the challenge on the room if it wasn't stored yet
+    if (room && !room.challenge && payload.target) {
+      room.challenge = { ...payload.target } as typeof room.challenge;
+    }
 
     try {
       const score = await scoreSubmission(
-        room.challenge.targetHTML,
-        room.challenge.targetCSS,
+        challenge.targetHTML,
+        challenge.targetCSS,
         payload.html,
         payload.css,
       );
@@ -162,6 +173,9 @@ io.on('connection', (socket) => {
       io.to(currentRoomCode).emit('leaderboard_update', { board });
     } catch (err) {
       console.error('[scorer] error:', err);
+      // Still broadcast leaderboard so clients don't get stuck on old scores
+      const board = getLeaderboard(currentRoomCode);
+      io.to(currentRoomCode).emit('leaderboard_update', { board });
     }
   });
 

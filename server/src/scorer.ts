@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 
@@ -17,6 +17,25 @@ async function getBrowser(): Promise<Browser> {
   return _browser;
 }
 
+async function makePage(browser: Browser): Promise<Page> {
+  const page = await browser.newPage();
+  await page.setViewport({ width: W, height: H });
+
+  // Block external resources so rendering is fast and deterministic
+  await page.setRequestInterception(true);
+  page.on('request', (req) => {
+    const t = req.resourceType();
+    // Allow the main document and inline data URIs; block everything else
+    if (t === 'document' || req.url().startsWith('data:')) {
+      req.continue();
+    } else {
+      req.abort();
+    }
+  });
+
+  return page;
+}
+
 function buildDoc(html: string, css: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -32,12 +51,7 @@ export async function scoreSubmission(
   userCSS: string,
 ): Promise<number> {
   const browser = await getBrowser();
-  const [tPage, uPage] = await Promise.all([browser.newPage(), browser.newPage()]);
-
-  await Promise.all([
-    tPage.setViewport({ width: W, height: H }),
-    uPage.setViewport({ width: W, height: H }),
-  ]);
+  const [tPage, uPage] = await Promise.all([makePage(browser), makePage(browser)]);
 
   try {
     await Promise.all([

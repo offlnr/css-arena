@@ -130,9 +130,14 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) return;
 
     // Debounce: send HTML+CSS to server for pixel comparison scoring
+    // Include target as fallback in case the server lost the challenge (e.g. Gemini failed in lobby)
     if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
     updateTimerRef.current = setTimeout(() => {
-      getSocket().emit('code_update', { html: htmlCode, css: cssCode });
+      getSocket().emit('code_update', {
+        html: htmlCode,
+        css: cssCode,
+        target: { targetHTML: challenge.targetHTML, targetCSS: challenge.targetCSS },
+      });
     }, 800);
   }, [htmlCode, cssCode, challenge]);
 
