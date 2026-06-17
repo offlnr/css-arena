@@ -5,6 +5,7 @@ import { useGameStore } from '../stores/gameStore';
 import { generateChallenge } from '../services/challengeGenerator';
 import { getSocket } from '../services/socket';
 import { registerCssCompletions } from '../data/cssCompletions';
+import { calcVisualScore } from '../utils/visualScore';
 import type { Challenge } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ArenaPage.module.css';
@@ -113,9 +114,9 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { cssCodeRef.current  = cssCode;  }, [cssCode]);
 
-  const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Update iframe preview in real time
+  // Update iframe preview in real time; debounce visual scoring
   useEffect(() => {
     if (!challenge) return;
     const iframe = resultRef.current;
@@ -127,17 +128,24 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     doc.close();
 
     // Skip scoring until the player actually changes the CSS
-    if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) return;
+    if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) {
+      setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score: 0 } : p)));
+      getSocket().emit('code_update', { score: 0, css: '' });
+      return;
+    }
 
-    // Debounce: send HTML+CSS to server for pixel comparison scoring
-    // Include target as fallback in case the server lost the challenge (e.g. Gemini failed in lobby)
-    if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
-    updateTimerRef.current = setTimeout(() => {
-      getSocket().emit('code_update', {
-        html: htmlCode,
-        css: cssCode,
-        target: { targetHTML: challenge.targetHTML, targetCSS: challenge.targetCSS },
-      });
+    if (visualTimerRef.current) clearTimeout(visualTimerRef.current);
+    visualTimerRef.current = setTimeout(async () => {
+      try {
+        const score = await calcVisualScore(
+          challenge.targetHTML, challenge.targetCSS,
+          htmlCode, cssCode,
+        );
+        setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
+        getSocket().emit('code_update', { score, css: cssCode });
+      } catch {
+        // scoring failed silently — keep previous score
+      }
     }, 800);
   }, [htmlCode, cssCode, challenge]);
 

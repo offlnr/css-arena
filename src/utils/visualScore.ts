@@ -1,85 +1,66 @@
-// ── Shorthand → longhand expansion ───────────────────────────────────────────
-const EXPAND: Record<string, string[]> = {
-  padding:           ['padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
-  margin:            ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'],
-  border:            ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
-                      'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-                      'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
-  'border-radius':   ['border-top-left-radius', 'border-top-right-radius',
-                      'border-bottom-right-radius', 'border-bottom-left-radius'],
-  'border-width':    ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width'],
-  'border-color':    ['border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color'],
-  'border-style':    ['border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style'],
-  background:        ['background-color', 'background-image', 'background-size', 'background-position'],
-  font:              ['font-size', 'font-weight', 'font-family', 'font-style', 'line-height'],
-  gap:               ['row-gap', 'column-gap'],
-  inset:             ['top', 'right', 'bottom', 'left'],
-  overflow:          ['overflow-x', 'overflow-y'],
-  outline:           ['outline-width', 'outline-color', 'outline-style'],
-  'text-decoration': ['text-decoration-line', 'text-decoration-color', 'text-decoration-style'],
-  // intentionally skip: transition, animation, transform (complex to compare fairly)
-  transition: [],
-  animation:  [],
-};
+// Visual properties checked on every element, regardless of what the target CSS uses.
+// Covers layout, color, typography, spacing, borders, and effects.
+const VISUAL_PROPS = [
+  'display', 'position',
+  'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'top', 'right', 'bottom', 'left',
+  'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'align-self',
+  'flex-grow', 'flex-shrink', 'flex-basis',
+  'grid-template-columns', 'grid-template-rows', 'gap',
+  'color', 'background-color',
+  'font-size', 'font-weight', 'font-style', 'text-align', 'line-height', 'letter-spacing',
+  'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+  'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+  'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+  'border-top-left-radius', 'border-top-right-radius',
+  'border-bottom-left-radius', 'border-bottom-right-radius',
+  'box-shadow', 'opacity', 'transform', 'overflow',
+  'object-fit', 'z-index', 'cursor',
+];
 
-// Extract the longhand properties that the target CSS explicitly sets
-function extractProps(css: string): string[] {
-  const raw = new Set<string>();
-  const re = /[\w-]+(?=\s*:)/g;
-  let m;
-  while ((m = re.exec(css)) !== null) {
-    const p = m[0].toLowerCase();
-    if (!p.startsWith('--')) raw.add(p); // skip CSS variables
-  }
-  const result = new Set<string>();
-  for (const p of raw) {
-    const expanded = EXPAND[p];
-    if (expanded !== undefined) {
-      expanded.forEach((e) => result.add(e));
-    } else {
-      result.add(p);
-    }
-  }
-  return [...result];
-}
-
-// ── Value comparison helpers ──────────────────────────────────────────────────
 function parseRgb(v: string): [number, number, number] | null {
-  const m = v.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  const m = v.match(/rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
   return m ? [+m[1], +m[2], +m[3]] : null;
 }
 
 function parseNum(v: string): number | null {
-  const m = v.match(/^([\d.]+)/);
-  return m ? parseFloat(m[1]) : null;
+  const m = v.match(/^-?([\d.]+)/);
+  return m ? parseFloat(m[0]) : null;
 }
 
-function valuesMatch(prop: string, a: string, b: string): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
+function propScore(prop: string, a: string, b: string): number {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
 
-  // Color comparison with tolerance ±15 per channel
+  // Color: tolerance ±20 per channel
   if (prop.includes('color')) {
     const ca = parseRgb(a), cb = parseRgb(b);
     if (ca && cb) {
-      return Math.abs(ca[0] - cb[0]) <= 15
-          && Math.abs(ca[1] - cb[1]) <= 15
-          && Math.abs(ca[2] - cb[2]) <= 15;
+      const d = Math.max(
+        Math.abs(ca[0] - cb[0]),
+        Math.abs(ca[1] - cb[1]),
+        Math.abs(ca[2] - cb[2]),
+      );
+      return d <= 20 ? 1 : Math.max(0, 1 - d / 255);
     }
   }
 
-  // Numeric comparison with ±3px / ±0.1em tolerance
+  // Numeric: full credit within tolerance, partial credit beyond
   const na = parseNum(a), nb = parseNum(b);
   if (na !== null && nb !== null) {
-    const unit = a.replace(/[\d.]+/, '') || b.replace(/[\d.]+/, '');
-    const tol = unit.includes('em') ? 0.1 : 3;
-    return Math.abs(na - nb) <= tol;
+    const unit = a.replace(/^-?[\d.]+/, '');
+    const tol  = unit.includes('em') || unit.includes('rem') ? 0.15 : 4;
+    const diff = Math.abs(na - nb);
+    if (diff <= tol) return 1;
+    const max = Math.max(Math.abs(na), Math.abs(nb), 1);
+    return Math.max(0, 1 - diff / max);
   }
 
-  return false;
+  return 0;
 }
 
-// ── Iframe rendering ──────────────────────────────────────────────────────────
 function buildDoc(html: string, css: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -95,51 +76,46 @@ function renderInIframe(html: string, css: string): Promise<{ doc: Document; cle
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     document.body.appendChild(iframe);
     const cleanup = () => { if (document.body.contains(iframe)) document.body.removeChild(iframe); };
-    iframe.onload = () => resolve({ doc: iframe.contentDocument!, cleanup });
+    iframe.onload  = () => resolve({ doc: iframe.contentDocument!, cleanup });
     iframe.onerror = () => { cleanup(); reject(new Error('iframe load failed')); };
-    iframe.srcdoc = buildDoc(html, css);
+    iframe.srcdoc  = buildDoc(html, css);
   });
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
 export async function calcVisualScore(
   targetHTML: string,
-  targetCSS: string,
-  userHTML: string,
-  userCSS: string,
+  targetCSS:  string,
+  userHTML:   string,
+  userCSS:    string,
 ): Promise<number> {
-  const props = extractProps(targetCSS);
-  if (props.length === 0) return 0;
-
   const [target, user] = await Promise.all([
     renderInIframe(targetHTML, targetCSS),
-    renderInIframe(userHTML, userCSS),
+    renderInIframe(userHTML,   userCSS),
   ]);
 
   try {
-    const targetEls = [...target.doc.body.querySelectorAll('*')] as Element[];
-    const userEls   = [...user.doc.body.querySelectorAll('*')] as Element[];
-    const count = Math.min(targetEls.length, userEls.length);
+    const tEls = [...target.doc.body.querySelectorAll('*')] as Element[];
+    const uEls = [...user.doc.body.querySelectorAll('*')] as Element[];
+    const count = Math.min(tEls.length, uEls.length);
     if (count === 0) return 0;
 
-    let hits = 0;
     let total = 0;
+    let score = 0;
 
     for (let i = 0; i < count; i++) {
-      const tStyles = target.doc.defaultView!.getComputedStyle(targetEls[i]);
-      const uStyles = user.doc.defaultView!.getComputedStyle(userEls[i]);
+      const tStyle = target.doc.defaultView!.getComputedStyle(tEls[i]);
+      const uStyle = user.doc.defaultView!.getComputedStyle(uEls[i]);
 
-      for (const prop of props) {
-        const tv = tStyles.getPropertyValue(prop).trim();
-        if (!tv || tv === 'none' && prop.startsWith('border')) continue; // skip unset
+      for (const prop of VISUAL_PROPS) {
+        const tv = tStyle.getPropertyValue(prop).trim();
+        if (!tv) continue;
         total++;
-        const uv = uStyles.getPropertyValue(prop).trim();
-        if (valuesMatch(prop, tv, uv)) hits++;
+        score += propScore(prop, tv, uStyle.getPropertyValue(prop).trim());
       }
     }
 
     if (total === 0) return 0;
-    return Math.round((hits / total) * 100);
+    return Math.round((score / total) * 100);
   } finally {
     target.cleanup();
     user.cleanup();

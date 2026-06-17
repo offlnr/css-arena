@@ -43,10 +43,8 @@ export interface JoinRoomPayload {
 }
 
 export interface CodeUpdatePayload {
-  html: string;
-  css: string;
-  // Included by client as fallback when server doesn't have the challenge stored
-  target?: { targetHTML: string; targetCSS: string };
+  score: number;
+  css?: string;
 }
 
 export interface ChallengeData {

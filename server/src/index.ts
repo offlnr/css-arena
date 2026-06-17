@@ -2,7 +2,6 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { scoreSubmission } from './scorer.js';
 import {
   createRoom, getRoom, addPlayer, removePlayer,
   updateScore, getLeaderboard, startGame, finishGame, resetRoom, getAllRooms,
@@ -145,38 +144,11 @@ io.on('connection', (socket) => {
   });
 
   // ── code_update ───────────────────────────────────────────────────────────
-  socket.on('code_update', async (payload: CodeUpdatePayload) => {
+  socket.on('code_update', (payload: CodeUpdatePayload) => {
     if (!currentRoomCode) return;
-    const room = getRoom(currentRoomCode);
-
-    // Use server-stored challenge or fall back to target sent by client
-    const challenge = room?.challenge ?? payload.target;
-    if (!challenge) {
-      console.warn('[scorer] no challenge for room', currentRoomCode);
-      return;
-    }
-
-    // Cache the challenge on the room if it wasn't stored yet
-    if (room && !room.challenge && payload.target) {
-      room.challenge = { ...payload.target } as typeof room.challenge;
-    }
-
-    try {
-      const score = await scoreSubmission(
-        challenge.targetHTML,
-        challenge.targetCSS,
-        payload.html,
-        payload.css,
-      );
-      updateScore(currentRoomCode, socket.id, score, payload.css);
-      const board = getLeaderboard(currentRoomCode);
-      io.to(currentRoomCode).emit('leaderboard_update', { board });
-    } catch (err) {
-      console.error('[scorer] error:', err);
-      // Still broadcast leaderboard so clients don't get stuck on old scores
-      const board = getLeaderboard(currentRoomCode);
-      io.to(currentRoomCode).emit('leaderboard_update', { board });
-    }
+    updateScore(currentRoomCode, socket.id, payload.score, payload.css);
+    const board = getLeaderboard(currentRoomCode);
+    io.to(currentRoomCode).emit('leaderboard_update', { board });
   });
 
   // ── rematch ───────────────────────────────────────────────────────────────
