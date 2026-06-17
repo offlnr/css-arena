@@ -306,11 +306,8 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
               }
               theme="vs-dark"
               beforeMount={(monaco) => {
-                // Registrar completado CSS en el hilo principal
-                // Funciona sin workers, instantáneo, sin depender del CDN
-                if (activeTab === 'css') {
-                  registerCssCompletions(monaco)
-                }
+                // Guarded internally — safe to call on every remount
+                registerCssCompletions(monaco)
               }}
               onMount={(editor) => {
                 // Forzar sugerencias en cada cambio de texto.
@@ -340,6 +337,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
                 acceptSuggestionOnEnter: 'on',
                 tabCompletion: 'on',
                 wordBasedSuggestions: 'off',
+                suggest: { showWords: false },
                 hover: { enabled: true },
                 formatOnPaste: true,
               }}

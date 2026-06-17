@@ -1,6 +1,30 @@
 import type { Monaco } from '@monaco-editor/react'
 
-// Propiedades CSS con sus valores más comunes como snippets
+// Prevent re-registering the provider on every editor remount (key={activeTab} causes remounts)
+let _registered = false
+
+function getTextBeforePosition(
+  model: import('monaco-editor').editor.ITextModel,
+  position: import('monaco-editor').Position,
+): string {
+  return model.getValueInRange({
+    startLineNumber: 1,
+    startColumn: 1,
+    endLineNumber: position.lineNumber,
+    endColumn: position.column,
+  })
+}
+
+// Returns true only when the cursor is inside a CSS rule block { ... }
+function isInsideCssBlock(textBefore: string): boolean {
+  let depth = 0
+  for (const ch of textBefore) {
+    if (ch === '{') depth++
+    else if (ch === '}') depth--
+  }
+  return depth > 0
+}
+
 const CSS_PROPS: { prop: string; values?: string[] }[] = [
   { prop: 'display',          values: ['flex','grid','block','inline','inline-block','inline-flex','none','contents'] },
   { prop: 'position',         values: ['relative','absolute','fixed','sticky','static'] },
@@ -100,8 +124,11 @@ const CSS_PROPS: { prop: string; values?: string[] }[] = [
 ]
 
 export function registerCssCompletions(monaco: Monaco) {
+  if (_registered) return
+  _registered = true
+
   monaco.languages.registerCompletionItemProvider('css', {
-    triggerCharacters: ['-', ':', ' ', '\n'],
+    triggerCharacters: ['-', ':'],
     provideCompletionItems(model: import('monaco-editor').editor.ITextModel, position: import('monaco-editor').Position) {
       const lineText = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -110,6 +137,7 @@ export function registerCssCompletions(monaco: Monaco) {
         endColumn: position.column,
       })
 
+      const textBefore = getTextBeforePosition(model, position)
       const word = model.getWordUntilPosition(position)
       const range = {
         startLineNumber: position.lineNumber,
@@ -118,7 +146,7 @@ export function registerCssCompletions(monaco: Monaco) {
         endColumn: word.endColumn,
       }
 
-      // Estamos después de ":" → sugerir valores
+      // After ":" → suggest values for that property
       const afterColon = /:\s*[\w-]*$/.test(lineText)
       if (afterColon) {
         const propMatch = lineText.match(/([\w-]+)\s*:\s*[\w-]*$/)
@@ -138,7 +166,12 @@ export function registerCssCompletions(monaco: Monaco) {
         return { suggestions: [] }
       }
 
-      // Estamos escribiendo una propiedad → sugerir nombres
+      // Only suggest property names when cursor is inside a rule block { ... }
+      // This prevents showing CSS properties when writing selectors (div, .class, etc.)
+      if (!isInsideCssBlock(textBefore)) {
+        return { suggestions: [] }
+      }
+
       return {
         suggestions: CSS_PROPS.map(({ prop }) => ({
           label: prop,
