@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { scoreSubmission } from './scorer.js';
 import {
   createRoom, getRoom, addPlayer, removePlayer,
   updateScore, getLeaderboard, startGame, finishGame, resetRoom, getAllRooms,
@@ -144,11 +145,24 @@ io.on('connection', (socket) => {
   });
 
   // ── code_update ───────────────────────────────────────────────────────────
-  socket.on('code_update', (payload: CodeUpdatePayload) => {
+  socket.on('code_update', async (payload: CodeUpdatePayload) => {
     if (!currentRoomCode) return;
-    updateScore(currentRoomCode, socket.id, payload.score, payload.css);
-    const board = getLeaderboard(currentRoomCode);
-    io.to(currentRoomCode).emit('leaderboard_update', { board });
+    const room = getRoom(currentRoomCode);
+    if (!room?.challenge) return;
+
+    try {
+      const score = await scoreSubmission(
+        room.challenge.targetHTML,
+        room.challenge.targetCSS,
+        payload.html,
+        payload.css,
+      );
+      updateScore(currentRoomCode, socket.id, score, payload.css);
+      const board = getLeaderboard(currentRoomCode);
+      io.to(currentRoomCode).emit('leaderboard_update', { board });
+    } catch (err) {
+      console.error('[scorer] error:', err);
+    }
   });
 
   // ── rematch ───────────────────────────────────────────────────────────────

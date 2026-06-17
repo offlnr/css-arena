@@ -43,9 +43,8 @@ export interface JoinRoomPayload {
 }
 
 export interface CodeUpdatePayload {
-  roomCode: string;
-  score: number;
-  css?: string;
+  html: string;
+  css: string;
 }
 
 export interface ChallengeData {

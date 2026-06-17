@@ -9,12 +9,20 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^25.1.0",
     "socket.io": "^4.8.1",
     "tsx": "^4.22.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
-    "@types/node": "^22.10.2"
+    "@types/node": "^22.10.2",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5"
+  },
+  "allowScripts": {
+    "puppeteer@25.1.0": true
   }
 }

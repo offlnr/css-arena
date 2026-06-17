@@ -5,7 +5,6 @@ import { useGameStore } from '../stores/gameStore';
 import { generateChallenge } from '../services/challengeGenerator';
 import { getSocket } from '../services/socket';
 import { registerCssCompletions } from '../data/cssCompletions';
-import { calcVisualScore } from '../utils/visualScore';
 import type { Challenge } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ArenaPage.module.css';
@@ -114,9 +113,9 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { cssCodeRef.current  = cssCode;  }, [cssCode]);
 
-  const visualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Actualizar iframe con document.write — confiable en todos los navegadores
+  // Update iframe preview in real time
   useEffect(() => {
     if (!challenge) return;
     const iframe = resultRef.current;
@@ -127,26 +126,13 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     doc.write(buildDoc(htmlCode, cssCode));
     doc.close();
 
-    // Score = 0 until the player actually writes CSS
-    if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) {
-      setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score: 0 } : p)));
-      getSocket().emit('code_update', { score: 0, css: '' });
-      return;
-    }
+    // Skip scoring until the player actually changes the CSS
+    if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) return;
 
-    // Debounce visual score to avoid capturing on every keystroke
-    if (visualTimerRef.current) clearTimeout(visualTimerRef.current);
-    visualTimerRef.current = setTimeout(async () => {
-      try {
-        const score = await calcVisualScore(
-          challenge.targetHTML, challenge.targetCSS,
-          htmlCode, cssCode,
-        );
-        setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
-        getSocket().emit('code_update', { score, css: cssCode });
-      } catch {
-        // visual capture failed, skip score update
-      }
+    // Debounce: send HTML+CSS to server for pixel comparison scoring
+    if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
+    updateTimerRef.current = setTimeout(() => {
+      getSocket().emit('code_update', { html: htmlCode, css: cssCode });
     }, 800);
   }, [htmlCode, cssCode, challenge]);
 
