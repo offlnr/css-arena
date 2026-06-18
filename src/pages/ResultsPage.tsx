@@ -3,6 +3,7 @@ import { RefreshCw, Code2 } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket } from '../services/socket';
 import { CHALLENGES } from '../data/challenges';
+import { useI18n } from '../i18n/LanguageContext';
 import type { GameResult } from '../types';
 import styles from './ResultsPage.module.css';
 
@@ -25,6 +26,7 @@ function scoreColor(s: number): string {
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNewGame, onRematch }) => {
   const { currentRoom, currentUser, gameState, setRoomPlayers } = useGameStore();
+  const { t } = useI18n();
   const challenge = gameState?.challenge ?? CHALLENGES[0];
 
   const [selectedId, setSelectedId] = useState<string>(results[0]?.user.id ?? '');
@@ -50,19 +52,19 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
     <div className={styles.container}>
       {/* ── Header ── */}
       <header className={styles.header}>
-        <span className={styles.headerTitle}>Resultados Finales</span>
+        <span className={styles.headerTitle}>{t('results_title')}</span>
         {currentRoom && (
-          <span className={styles.roomCodeBadge}>SALA-{currentRoom.code}</span>
+          <span className={styles.roomCodeBadge}>{t('results_room_prefix')}{currentRoom.code}</span>
         )}
         <div className={styles.headerSpacer} />
         {currentRoom && isHost && (
           <button className={styles.newGameButton} onClick={() => getSocket().emit('rematch')} style={{ marginRight: 8 }}>
             <RefreshCw size={14} />
-            Revancha
+            {t('results_rematch')}
           </button>
         )}
         <button className={styles.backButton} onClick={onNewGame}>
-          ← Inicio
+          {t('results_back')}
         </button>
       </header>
 
@@ -71,7 +73,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
         {/* ── Sidebar: standings ── */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            🏆 TABLA DE POSICIONES
+            {t('results_standings')}
           </div>
           {results.map((r) => {
             const isActive = r.user.id === selectedId;
@@ -96,7 +98,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
                     <span className={isMeRow ? styles.playerNameMe : ''}>
                       {isMeRow ? currentUser?.username ?? 'tú' : r.user.username}
                     </span>
-                    {isMeRow && <span className={styles.youBadge}>★ tú</span>}
+                    {isMeRow && <span className={styles.youBadge}>{t('results_you_badge')}</span>}
                   </div>
                   <div className={styles.progressBar}>
                     <div
@@ -121,15 +123,15 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
           {/* Sub-header */}
           <div className={styles.comparisonHeader}>
             <div className={styles.comparingText}>
-              Comparando:&nbsp;
+              {t('results_comparing')}&nbsp;
               <span className={styles.comparingName}>
-                {isMe ? currentUser?.username ?? 'tú' : selected?.user.username}
+                {isMe ? currentUser?.username ?? t('arena_you') : selected?.user.username}
               </span>
-              <span className={styles.comparingScore}>{selected?.similarity ?? 0}% similitud</span>
+              <span className={styles.comparingScore}>{selected?.similarity ?? 0}{t('results_similarity')}</span>
             </div>
             <button className={styles.codeToggleBtn} onClick={() => setShowCode((v) => !v)}>
               <Code2 size={13} />
-              {showCode ? 'Ver preview' : 'Ver código'}
+              {showCode ? t('results_view_preview') : t('results_view_code')}
             </button>
           </div>
 
@@ -151,7 +153,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
                 </button>
               </div>
               <pre className={styles.codeBlock}>
-                {codeTab === 'html' ? challenge.targetHTML : (selected?.css || '/* Sin CSS escrito */')}
+                {codeTab === 'html' ? challenge.targetHTML : (selected?.css || t('results_no_css'))}
               </pre>
             </div>
           ) : (
@@ -159,7 +161,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
               {/* Target */}
               <div className={styles.splitPane}>
                 <div className={`${styles.splitLabel} ${styles.splitLabelTarget}`}>
-                  IA OBJETIVO
+                  {t('results_ai_objective')}
                 </div>
                 <iframe
                   srcDoc={buildDoc(challenge.targetHTML, challenge.targetCSS)}
@@ -171,7 +173,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
 
               <div className={styles.splitPane}>
                 <div className={styles.splitLabel}>
-                  {isMe ? 'TU RESULTADO' : `RESULTADO DE ${selected?.user.username.toUpperCase()}`}
+                  {isMe ? t('results_your_result') : `${t('results_result_of')} ${selected?.user.username.toUpperCase()}`}
                 </div>
                 <iframe
                   srcDoc={buildDoc(
