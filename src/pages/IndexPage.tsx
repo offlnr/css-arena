@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent, type FC } from 'react';
 import { Users } from 'lucide-react';
+import { useI18n } from '../i18n/LanguageContext';
 import styles from './IndexPage.module.css';
 
 interface IndexPageProps {
@@ -8,12 +9,13 @@ interface IndexPageProps {
 }
 
 export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [error, setError]       = useState('');
 
   const validate = (): boolean => {
     if (!username.trim()) {
-      setError('El nombre de usuario es requerido');
+      setError(t('index_username_required'));
       return false;
     }
     setError('');
@@ -38,7 +40,7 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
         {/* Title */}
         <div className={styles.headerText}>
           <h1 className={styles.title}>CSS Arena</h1>
-          <p className={styles.subtitle}>Replica el diseño. Gana la partida.</p>
+          <p className={styles.subtitle}>{t('index_subtitle')}</p>
         </div>
 
         {/* Form card */}
@@ -46,11 +48,11 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
           <div className={styles.form}>
             {/* Username field */}
             <div className={styles.fieldWrapper}>
-              <label className={styles.label}>NOMBRE DE USUARIO</label>
+              <label className={styles.label}>{t('index_username_label')}</label>
               <input
                 type="text"
                 className={`${styles.input} ${error ? styles.inputError : ''}`}
-                placeholder="Ej: dev_master_42"
+                placeholder={t('index_username_placeholder')}
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(''); }}
                 onKeyDown={onKeyDown}
@@ -63,11 +65,11 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
             {/* Buttons */}
             <div className={styles.buttons}>
               <button className={styles.btnPrimary} onClick={handleCreate}>
-                + Crear nueva sala
+                {t('index_create_room')}
               </button>
               <button className={styles.btnSecondary} onClick={handleJoin}>
                 <Users size={15} />
-                Unirse a sala
+                {t('index_join_room')}
               </button>
             </div>
           </div>
@@ -75,7 +77,9 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
 
         {/* Footer */}
         <p className={styles.footer}>
-          v0.1.0 — Construido con <span className={styles.footerHeart}>♥</span> y CSS
+          {`v0.1.0 — ${t('index_footer').split('♥')[0]}`}
+          <span className={styles.footerHeart}>♥</span>
+          {t('index_footer').split('♥')[1]}
         </p>
       </div>
     </div>
