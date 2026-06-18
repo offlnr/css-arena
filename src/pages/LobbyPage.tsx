@@ -3,6 +3,7 @@ import { Copy, Check, Users } from 'lucide-react';
 import { useGameStore } from '../stores/gameStore';
 import { getSocket, resetSocket } from '../services/socket';
 import { generateChallenge } from '../services/challengeGenerator';
+import { useI18n } from '../i18n/LanguageContext';
 import type { Challenge } from '../data/challenges';
 import styles from './LobbyPage.module.css';
 
@@ -28,6 +29,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart, onBack }) => {
   const { currentRoom, currentUser, setCurrentRoom, setPendingChallenge, setRoomPlayers, roomPlayers } = useGameStore();
+  const { t } = useI18n();
 
   const [isReady,  setIsReady]  = useState(false);
   const [copied,   setCopied]   = useState(false);
@@ -172,7 +174,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     return (
       <div className={styles.container}>
         <div className={styles.center}>
-          <p className={styles.connectingText}>Conectando al servidor…</p>
+          <p className={styles.connectingText}>{t('lobby_connecting')}</p>
         </div>
       </div>
     );
@@ -182,9 +184,9 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     return (
       <div className={styles.container}>
         <div className={styles.center}>
-          <p className={styles.errorTitle}>Error de conexión</p>
+          <p className={styles.errorTitle}>{t('lobby_connection_error')}</p>
           <p className={styles.errorMsg}>{error}</p>
-          <button className={styles.backBtnCenter} onClick={handleBack}>← Volver</button>
+          <button className={styles.backBtnCenter} onClick={handleBack}>{t('lobby_back')}</button>
         </div>
       </div>
     );
@@ -194,7 +196,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <button className={styles.backBtn} onClick={handleBack}>← Volver</button>
+        <button className={styles.backBtn} onClick={handleBack}>{t('lobby_back')}</button>
         <div className={styles.logo}>
           <span className={styles.logoIcon}>⚡</span>
           <span className={styles.logoText}>CSS Arena</span>
@@ -221,21 +223,21 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
           </div>
 
           <div className={styles.codeSection}>
-            <span className={styles.codeLabel}>CÓDIGO DE SALA</span>
+            <span className={styles.codeLabel}>{t('lobby_code_label')}</span>
             <div className={styles.codeRow}>
               <span className={styles.codeValue}>{roomCode.split('').join(' ')}</span>
               <button className={styles.copyBtn} onClick={handleCopy}>
                 {copied ? <Check size={13} /> : <Copy size={13} />}
-                {copied ? 'Copiado' : 'Copiar'}
+                {copied ? t('lobby_copied') : t('lobby_copy')}
               </button>
             </div>
-            <p className={styles.codeHint}>Comparte este código con tus amigos para que se unan</p>
+            <p className={styles.codeHint}>{t('lobby_code_hint')}</p>
           </div>
         </div>
 
         {/* Players */}
         <div className={styles.card}>
-          <span className={styles.sectionLabel}>JUGADORES ({players.length}/{currentRoom?.maxPlayers ?? 2})</span>
+          <span className={styles.sectionLabel}>{t('lobby_players_label')} ({players.length}/{currentRoom?.maxPlayers ?? 2})</span>
           <div className={styles.playerList}>
             {players.map((p) => (
               <div key={p.id} className={styles.playerRow}>
@@ -243,10 +245,10 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
                 <span className={styles.playerName}>
                   {p.username}
                   {p.isMe && isHost && <span className={styles.hostBadge}>HOST</span>}
-                  {p.isMe && !isHost && <span className={styles.meBadge}>tú</span>}
+                  {p.isMe && !isHost && <span className={styles.meBadge}>{t('lobby_you')}</span>}
                 </span>
                 <span className={`${styles.readyBadge} ${p.isReady ? styles.readyBadgeOn : styles.readyBadgeOff}`}>
-                  {p.isReady ? '✓ Listo' : 'No listo'}
+                  {p.isReady ? t('lobby_ready') : t('lobby_not_ready')}
                 </span>
               </div>
             ))}
@@ -254,7 +256,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
             {Array.from({ length: emptySlots }).map((_, i) => (
               <div key={`empty-${i}`} className={`${styles.playerRow} ${styles.playerRowEmpty}`}>
                 <div className={`${styles.playerAvatar} ${styles.playerAvatarEmpty}`}>?</div>
-                <span className={styles.playerNameEmpty}>Esperando jugador…</span>
+                <span className={styles.playerNameEmpty}>{t('lobby_waiting_player')}</span>
               </div>
             ))}
           </div>
@@ -271,15 +273,15 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
               getSocket().emit('player_ready', { isReady: next });
             }}
           >
-            {isReady ? '✓ Listo' : 'Marcar como listo'}
+            {isReady ? t('lobby_ready') : t('lobby_mark_ready')}
           </button>
 
           {isHost ? (
             <button className={styles.startBtn} onClick={handleStart} disabled={!canStart}>
-              {starting ? 'Generando desafío…' : canStart ? '▶ Iniciar partida' : 'Esperando que estés listo…'}
+              {starting ? t('lobby_generating') : canStart ? t('lobby_start') : t('lobby_waiting_ready')}
             </button>
           ) : (
-            <p className={styles.waitingText}>Esperando que el host inicie la partida…</p>
+            <p className={styles.waitingText}>{t('lobby_waiting_host')}</p>
           )}
         </div>
       </main>
