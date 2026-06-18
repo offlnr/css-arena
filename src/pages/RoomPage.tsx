@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Copy, Users, Globe, Check, RefreshCw } from 'lucide-react';
 import type { Room } from '../types';
 import { useGameStore } from '../stores/gameStore';
+import { useI18n } from '../i18n/LanguageContext';
 import styles from './RoomPage.module.css';
 
 const SERVER_URL = (import.meta.env.VITE_SERVER_URL as string | undefined) ?? 'http://localhost:3001';
@@ -31,14 +32,15 @@ interface RoomPageProps {
 
 const DURATIONS = [3, 5, 10, 15];
 const PLAYER_COUNTS = [2, 4, 6, 8];
-const DIFFICULTIES: { key: Difficulty; color: string; desc: string }[] = [
-  { key: 'Fácil',   color: '#22C55E', desc: 'Layouts simples, un componente' },
-  { key: 'Medio',   color: '#FBBF24', desc: 'Múltiples componentes, colores' },
-  { key: 'Difícil', color: '#EF4444', desc: 'Diseños complejos, responsive' },
+const DIFFICULTIES: { key: Difficulty; color: string }[] = [
+  { key: 'Fácil',   color: '#22C55E' },
+  { key: 'Medio',   color: '#FBBF24' },
+  { key: 'Difícil', color: '#EF4444' },
 ];
 
 export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoomJoined }) => {
   const { currentUser } = useGameStore();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<TabType>('create');
   const [roomName, setRoomName]   = useState('Mi sala épica');
   const [roomCode]                = useState(generateRoomCode);
@@ -92,6 +94,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
     onRoomCreated(buildRoom(roomCode, roomName.trim()));
   };
 
+  const diffLabel: Record<Difficulty, string> = { 'Fácil': t('diff_easy'), 'Medio': t('diff_medium'), 'Difícil': t('diff_hard') };
+  const diffDesc:  Record<Difficulty, string> = { 'Fácil': t('diff_easy_desc'), 'Medio': t('diff_medium_desc'), 'Difícil': t('diff_hard_desc') };
+
   const handleJoin = () => {
     const code = joinCode.trim().toUpperCase();
     if (code.length < 4) return;
@@ -102,7 +107,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
     <div className={styles.container}>
       <header className={styles.header}>
         <button className={styles.backButton} onClick={onBack}>
-          ← Volver
+          {t('room_back')}
         </button>
         <div className={styles.logo}>
           <span className={styles.logoIcon}>⚡</span>
@@ -118,14 +123,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
             className={`${styles.tab} ${activeTab === 'create' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('create')}
           >
-            + Crear sala
+            {t('room_tab_create')}
           </button>
           <button
             className={`${styles.tab} ${activeTab === 'join' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('join')}
           >
             <Users size={14} style={{ display: 'inline', marginRight: 4 }} />
-            Unirse a sala
+            {t('room_tab_join')}
           </button>
         </div>
 
@@ -134,18 +139,18 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
             <div className={styles.form}>
               {/* Room name */}
               <div className={styles.field}>
-                <label className={styles.label}>NOMBRE DE LA SALA</label>
+                <label className={styles.label}>{t('room_name_label')}</label>
                 <input
                   className={styles.input}
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  placeholder="Mi sala épica"
+                  placeholder={t('room_name_placeholder')}
                 />
               </div>
 
               {/* Room code */}
               <div className={styles.field}>
-                <label className={styles.label}>CÓDIGO DE SALA (COMPARTE CON AMIGOS)</label>
+                <label className={styles.label}>{t('room_code_label')}</label>
                 <div className={styles.codeRow}>
                   <div className={styles.codeDisplay}>
                     <span className={styles.codeHash}>#</span>
@@ -153,7 +158,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                   </div>
                   <button className={styles.copyButton} onClick={handleCopy}>
                     {copied ? <Check size={13} /> : <Copy size={13} />}
-                    {copied ? 'Copiado' : 'Copiar'}
+                    {copied ? t('room_copied') : t('room_copy')}
                   </button>
                 </div>
               </div>
@@ -161,7 +166,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
               {/* Duration + Players side by side */}
               <div className={styles.optionsRow}>
                 <div className={styles.optionGroup}>
-                  <span className={styles.optionLabel}>⏱ DURACIÓN</span>
+                  <span className={styles.optionLabel}>{t('room_duration_label')}</span>
                   <div className={styles.optionGrid}>
                     {DURATIONS.map((m) => (
                       <button
@@ -178,7 +183,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 <div className={styles.optionGroup}>
                   <span className={styles.optionLabel}>
                     <Users size={11} />
-                    &nbsp;JUGADORES
+                    &nbsp;{t('room_players_label')}
                   </span>
                   <div className={styles.optionGrid}>
                     {PLAYER_COUNTS.map((n) => (
@@ -196,17 +201,17 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
 
               {/* Difficulty */}
               <div className={styles.field}>
-                <label className={styles.label}>DIFICULTAD</label>
+                <label className={styles.label}>{t('room_difficulty_label')}</label>
                 <div className={styles.difficultyList}>
-                  {DIFFICULTIES.map(({ key, color, desc }) => (
+                  {DIFFICULTIES.map(({ key, color }) => (
                     <button
                       key={key}
                       className={`${styles.difficultyRow} ${difficulty === key ? styles.difficultyRowActive : ''}`}
                       onClick={() => setDifficulty(key)}
                     >
                       <span className={styles.difficultyDot} style={{ backgroundColor: color }} />
-                      <span className={styles.difficultyName}>{key}</span>
-                      <span className={styles.difficultyDesc}>{desc}</span>
+                      <span className={styles.difficultyName}>{diffLabel[key]}</span>
+                      <span className={styles.difficultyDesc}>{diffDesc[key]}</span>
                       {difficulty === key && <Check size={13} className={styles.difficultyCheck} />}
                     </button>
                   ))}
@@ -220,21 +225,21 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
               >
                 <Globe size={16} className={styles.publicIcon} />
                 <div className={styles.publicText}>
-                  <span className={styles.publicTitle}>Sala pública</span>
-                  <span className={styles.publicDesc}>Visible para todos los jugadores</span>
+                  <span className={styles.publicTitle}>{t('room_public_title')}</span>
+                  <span className={styles.publicDesc}>{t('room_public_desc')}</span>
                 </div>
                 <div className={`${styles.publicRadio} ${isPublic ? styles.publicRadioActive : ''}`} />
               </button>
 
               {/* Summary */}
               <div className={styles.summary}>
-                <span className={styles.summaryLabel}>Resumen:</span>
-                {' '}{duration} min · Max {maxPlayers} jugadores ·{' '}
-                <span className={styles.summaryDifficulty}>{difficulty}</span>
+                <span className={styles.summaryLabel}>{t('room_summary')}</span>
+                {' '}{duration} {t('room_summary_min')} · {t('room_summary_max')} {maxPlayers} {t('room_summary_players')} ·{' '}
+                <span className={styles.summaryDifficulty}>{diffLabel[difficulty]}</span>
               </div>
 
               <button className={styles.createButton} onClick={handleCreate} disabled={!roomName.trim()}>
-                {'>'} Crear sala y esperar jugadores
+                {t('room_create_btn')}
               </button>
             </div>
           ) : (
@@ -242,20 +247,20 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
               {/* Public rooms list */}
               <div className={styles.field}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <label className={styles.label} style={{ margin: 0 }}>SALAS DISPONIBLES</label>
+                  <label className={styles.label} style={{ margin: 0 }}>{t('room_available_label')}</label>
                   <button
                     onClick={fetchRooms}
                     disabled={loadingRooms}
                     style={{ background: 'none', border: 'none', color: '#6366F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}
                   >
                     <RefreshCw size={12} style={{ animation: loadingRooms ? 'spin 1s linear infinite' : 'none' }} />
-                    Actualizar
+                    {t('room_refresh')}
                   </button>
                 </div>
                 {loadingRooms ? (
-                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>Buscando salas…</p>
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>{t('room_searching')}</p>
                 ) : publicRooms.length === 0 ? (
-                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>No hay salas públicas disponibles.</p>
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>{t('room_no_rooms')}</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {publicRooms.map((r) => (
@@ -294,12 +299,12 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
 
               {/* Manual code input */}
               <div className={styles.field}>
-                <label className={styles.label}>O INGRESA UN CÓDIGO MANUALMENTE</label>
+                <label className={styles.label}>{t('room_manual_label')}</label>
                 <input
                   className={styles.input}
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="Ej: A1B2C3"
+                  placeholder={t('room_manual_placeholder')}
                   maxLength={6}
                   style={{ letterSpacing: '0.12em', fontFamily: 'JetBrains Mono, Fira Code, monospace' }}
                 />
@@ -310,7 +315,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 onClick={handleJoin}
                 disabled={joinCode.trim().length < 4}
               >
-                {'>'} Unirse a la sala
+                {t('room_join_btn')}
               </button>
             </div>
           )}
