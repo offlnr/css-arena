@@ -6,6 +6,7 @@ import { generateChallenge } from '../services/challengeGenerator';
 import { getSocket } from '../services/socket';
 import { registerCssCompletions } from '../data/cssCompletions';
 import { calcVisualScore } from '../utils/visualScore';
+import { useI18n } from '../i18n/LanguageContext';
 import type { Challenge } from '../data/challenges';
 import type { GameResult } from '../types';
 import styles from './ArenaPage.module.css';
@@ -31,6 +32,7 @@ function buildDoc(html: string, css: string): string {
 
 export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   const { currentRoom, currentUser, setGameState, pendingChallenge, setPendingChallenge, roomPlayers } = useGameStore();
+  const { t } = useI18n();
 
   // ── Challenge loading state ─────────────────────────────────────────────
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -224,8 +226,8 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       <div className={styles.loadingScreen}>
         <div className={styles.loadingIcon}>&gt;_</div>
         <div>
-          <p className={styles.loadingTitle}>Generando desafío con IA…</p>
-          <p className={styles.loadingSubtitle}>La IA está creando un reto único para esta partida</p>
+          <p className={styles.loadingTitle}>{t('arena_loading_title')}</p>
+          <p className={styles.loadingSubtitle}>{t('arena_loading_subtitle')}</p>
         </div>
         <div className={styles.loadingDots}>
           <span /><span /><span />
@@ -237,12 +239,10 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   if (loadStatus === 'error') {
     return (
       <div className={styles.errorScreen}>
-        <p className={styles.errorTitle}>No se pudo generar el desafío</p>
-        <p className={styles.errorMsg}>
-          Revisa tu conexión o configura VITE_GEMINI_API_KEY en el archivo .env
-        </p>
-        <button className={styles.errorBtn} onClick={retry}>Reintentar</button>
-        <button className={styles.errorBtn} style={{ background: 'none', border: '1px solid #3A4048', color: '#A0A0A0' }} onClick={onExit}>Volver</button>
+        <p className={styles.errorTitle}>{t('arena_error_title')}</p>
+        <p className={styles.errorMsg}>{t('arena_error_msg')}</p>
+        <button className={styles.errorBtn} onClick={retry}>{t('arena_retry')}</button>
+        <button className={styles.errorBtn} style={{ background: 'none', border: '1px solid #3A4048', color: '#A0A0A0' }} onClick={onExit}>{t('arena_back')}</button>
       </div>
     );
   }
@@ -272,7 +272,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         <div className={styles.headerRight}>
           <button className={styles.headerBtn} onClick={onExit}>
             <LogOut size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-            Salir
+            {t('arena_exit')}
           </button>
         </div>
       </header>
@@ -292,7 +292,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
                 onClick={() => setActiveTab('css')}
               >CSS</button>
             </div>
-            <span className={styles.lineCount}>{lineCount} Líneas</span>
+            <span className={styles.lineCount}>{lineCount} {t('arena_lines')}</span>
           </div>
 
           <div className={styles.editorWrapper}>
@@ -349,7 +349,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
           <div className={`${styles.previewSection} ${styles.previewSectionTarget}`}>
             <div className={styles.previewHeader}>
               <span className={styles.previewDot} style={{ background: '#6366F1' }} />
-              OBJETIVO DE LA IA
+              {t('arena_ai_objective')}
             </div>
             <div className={styles.previewContent}>
               <iframe
@@ -364,7 +364,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
           <div className={`${styles.previewSection} ${styles.previewSectionResult}`}>
             <div className={styles.previewHeader}>
               <span className={`${styles.previewDot} ${styles.previewDotLive}`} style={{ background: '#00FF88' }} />
-              TU RESULTADO
+              {t('arena_your_result')}
               <span className={styles.previewHeaderSpacer} />
               <span
                 className={styles.previewScorePill}
@@ -394,14 +394,14 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         <div className={styles.leaderboard}>
           <div className={styles.leaderboardHeader}>
             <span className={styles.leaderboardIcon}>🏆</span>
-            CLASIFICACIÓN
+            {t('arena_leaderboard')}
           </div>
           <div className={styles.playerList}>
             {sortedPlayers.map((p, i) => (
               <div key={p.id} className={`${styles.playerRow} ${p.isMe ? styles.playerRowMe : ''}`}>
                 <span className={`${styles.playerRank} ${rankClass(i)}`}>{i + 1}</span>
                 <span className={`${styles.playerName} ${p.isMe ? styles.playerNameMe : ''}`}>
-                  {p.isMe ? `tú (${currentUser?.username ?? 'tú'})` : p.username}
+                  {p.isMe ? `${t('arena_you')} (${currentUser?.username ?? t('arena_you')})` : p.username}
                 </span>
                 <span className={styles.playerScore} style={{ color: scoreColor(p.score) }}>
                   {Math.round(p.score)}%
