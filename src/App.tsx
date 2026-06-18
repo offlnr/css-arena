@@ -5,6 +5,8 @@ import { LobbyPage }   from './pages/LobbyPage';
 import { ArenaPage }   from './pages/ArenaPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { useGameStore } from './stores/gameStore';
+import { LanguageProvider } from './i18n/LanguageContext';
+import { LanguageToggle } from './components/LanguageToggle';
 import type { User, Room, GameResult } from './types';
 
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
@@ -53,7 +55,10 @@ function App() {
   }, []);
 
   return (
-    <>
+    <LanguageProvider>
+      <div style={{ position: 'fixed', top: 12, right: 16, zIndex: 1000 }}>
+        <LanguageToggle />
+      </div>
       {page === 'index' && (
         <IndexPage
           onCreateRoom={handleEnterRoom}
@@ -93,7 +98,7 @@ function App() {
           onRematch={handleRematch}
         />
       )}
-    </>
+    </LanguageProvider>
   );
 }
 
