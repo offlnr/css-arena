@@ -28,7 +28,11 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 };
 
 export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart, onBack }) => {
-  const { currentRoom, currentUser, setCurrentRoom, setPendingChallenge, setRoomPlayers, roomPlayers } = useGameStore();
+  const {
+    currentRoom, currentUser,
+    setCurrentRoom, setPendingChallenge,
+    setRoomPlayers, roomPlayers,
+  } = useGameStore();
   const { t } = useI18n();
 
   const [isReady,  setIsReady]  = useState(false);
@@ -39,6 +43,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
   const [status,   setStatus]   = useState<'connecting' | 'ready' | 'error'>(isRematch ? 'ready' : 'connecting');
   const [starting, setStarting] = useState(false);
 
+  // Prevents onStart being called twice when both the local timer and a server event fire.
   const startedRef = useRef(false);
 
   const handleCopy = () => {
@@ -47,12 +52,15 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Seed player list from store when returning from results (rematch)
+  // When returning from a finished game (rematch), restore the player list from the store
+  // instead of re-joining the socket room, because the socket is already connected.
   useEffect(() => {
     if (!isRematch || roomPlayers.length === 0) return;
     const socket = getSocket();
     const myId = socket.id ?? '';
-    setPlayers(roomPlayers.map((p) => ({ id: p.id, username: p.username, isMe: p.id === myId, isReady: false })));
+    setPlayers(
+      roomPlayers.map((p) => ({ id: p.id, username: p.username, isMe: p.id === myId, isReady: false }))
+    );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRematch]);
 
@@ -61,10 +69,11 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
 
     const init = () => {
       if (isRematch) {
-        // Already in the socket room — skip create/join
+        // Already in the socket room — skip create/join, just update the displayed code.
         setRoomCode(currentRoom?.code ?? '');
         return;
       }
+
       if (isHost) {
         socket.emit('create_room', {
           roomName:   currentRoom?.name       ?? 'Sala',
@@ -93,16 +102,18 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
           players?: { id: string; username: string; score: number }[];
         }) => {
           if (!ack.ok) { setError(ack.error ?? 'No se pudo unir a la sala'); setStatus('error'); return; }
-          // Sync room settings from host so joined player sees correct data
+
+          // Sync room settings from the host so the joined player sees the correct config.
           if (currentRoom && ack.roomName) {
             setCurrentRoom({
               ...currentRoom,
-              name: ack.roomName,
-              duration: ack.duration ?? currentRoom.duration,
+              name:       ack.roomName,
+              duration:   ack.duration   ?? currentRoom.duration,
               maxPlayers: ack.maxPlayers ?? currentRoom.maxPlayers,
               difficulty: ack.difficulty ?? currentRoom.difficulty,
             });
           }
+
           const list: PlayerInfo[] = (ack.players ?? []).map((p) => ({
             id: p.id, username: p.username, isMe: p.id === socket.id, isReady: false,
           }));
@@ -112,27 +123,21 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
       }
     };
 
-    socket.on('connect_error', () => {
-      setError('No se pudo conectar al servidor');
-      setStatus('error');
-    });
-
-    socket.on('player_joined', ({ id, username }: { id: string; username: string }) => {
+    socket.on('connect_error',          () => { setError('No se pudo conectar al servidor'); setStatus('error'); });
+    socket.on('player_joined',          ({ id, username }: { id: string; username: string }) => {
       setPlayers((prev) => prev.some((p) => p.id === id) ? prev : [...prev, { id, username, isMe: false, isReady: false }]);
     });
-
-    socket.on('player_ready_update', ({ id, isReady }: { id: string; isReady: boolean }) => {
+    socket.on('player_ready_update',    ({ id, isReady }: { id: string; isReady: boolean }) => {
       setPlayers((prev) => prev.map((p) => p.id === id ? { ...p, isReady } : p));
     });
-
-    socket.on('player_left', ({ id }: { id: string }) => {
+    socket.on('player_left',            ({ id }: { id: string }) => {
       setPlayers((prev) => prev.filter((p) => p.id !== id));
     });
-
     socket.on('game_started', ({ challenge }: { challenge?: Challenge }) => {
       if (startedRef.current) return;
       startedRef.current = true;
       if (challenge) setPendingChallenge(challenge);
+      // Capture the final player list before navigating so ArenaPage can build the leaderboard.
       setPlayers((current) => {
         setRoomPlayers(current.map((p) => ({ id: p.id, username: p.username })));
         return current;
@@ -143,7 +148,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     if (socket.connected) { init(); } else { socket.once('connect', init); socket.connect(); }
 
     return () => {
-      socket.off('connect', init);
+      socket.off('connect',          init);
       socket.off('connect_error');
       socket.off('player_joined');
       socket.off('player_ready_update');
@@ -157,7 +162,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     if (!canStart || starting) return;
     setStarting(true);
     let challenge: Challenge | undefined;
-    try { challenge = await generateChallenge(); } catch { /* fallback handled inside */ }
+    try { challenge = await generateChallenge(); } catch { /* fallback handled inside generateChallenge */ }
     getSocket().emit('start_game', { roomCode, challenge });
   };
 
@@ -166,10 +171,9 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     onBack();
   };
 
-  const canStart = isHost && isReady;
+  const canStart   = isHost && isReady;
   const emptySlots = Math.max(0, (currentRoom?.maxPlayers ?? 2) - players.length);
 
-  // ── Connection states ──────────────────────────────────────────────────────
   if (status === 'connecting') {
     return (
       <div className={styles.container}>
@@ -192,7 +196,6 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     );
   }
 
-  // ── Lobby ─────────────────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -205,11 +208,13 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
       </header>
 
       <main className={styles.main}>
-        {/* Room info */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>{currentRoom?.name ?? 'Sala'}</span>
-            <span className={styles.difficultyBadge} style={{ color: DIFFICULTY_COLOR[currentRoom?.difficulty ?? 'Medio'] }}>
+            <span
+              className={styles.difficultyBadge}
+              style={{ color: DIFFICULTY_COLOR[currentRoom?.difficulty ?? 'Medio'] }}
+            >
               {currentRoom?.difficulty}
             </span>
           </div>
@@ -235,16 +240,17 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
           </div>
         </div>
 
-        {/* Players */}
         <div className={styles.card}>
-          <span className={styles.sectionLabel}>{t('lobby_players_label')} ({players.length}/{currentRoom?.maxPlayers ?? 2})</span>
+          <span className={styles.sectionLabel}>
+            {t('lobby_players_label')} ({players.length}/{currentRoom?.maxPlayers ?? 2})
+          </span>
           <div className={styles.playerList}>
             {players.map((p) => (
               <div key={p.id} className={styles.playerRow}>
                 <div className={styles.playerAvatar}>{p.username[0]?.toUpperCase()}</div>
                 <span className={styles.playerName}>
                   {p.username}
-                  {p.isMe && isHost && <span className={styles.hostBadge}>HOST</span>}
+                  {p.isMe && isHost  && <span className={styles.hostBadge}>HOST</span>}
                   {p.isMe && !isHost && <span className={styles.meBadge}>{t('lobby_you')}</span>}
                 </span>
                 <span className={`${styles.readyBadge} ${p.isReady ? styles.readyBadgeOn : styles.readyBadgeOff}`}>
@@ -262,7 +268,6 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
           </div>
         </div>
 
-        {/* Actions */}
         <div className={styles.actions}>
           <button
             className={`${styles.readyBtn} ${isReady ? styles.readyBtnOn : ''}`}
