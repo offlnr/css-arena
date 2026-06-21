@@ -3,7 +3,8 @@ import type { Challenge } from '../data/challenges';
 import { CHALLENGES } from '../data/challenges';
 import { formatHTML } from '../utils/formatHTML';
 
-const PROMPT = `You are a CSS challenge generator for a competitive coding game.
+// Difficulty values must stay in Spanish — the server and AI prompt reference them directly.
+const AI_PROMPT = `You are a CSS challenge generator for a competitive coding game.
 
 Generate a UNIQUE, CREATIVE HTML/CSS component challenge. Every call must produce a DIFFERENT component type and visual style.
 
@@ -27,7 +28,7 @@ Strict rules:
 - Add visual polish: gradients, colored borders, icons as unicode chars (✓ ★ ♥ ↗), hover states
 - difficulty mapping: Fácil = simple single card, Medio = 2–3 sections or states, Difícil = complex layout or responsive elements`;
 
-interface GeneratedChallenge {
+interface RawGeneratedChallenge {
   title: string;
   difficulty: 'Fácil' | 'Medio' | 'Difícil';
   description: string;
@@ -35,23 +36,24 @@ interface GeneratedChallenge {
   css: string;
 }
 
-function randomFallback(): Challenge {
+function pickRandomChallenge(): Challenge {
   return CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
 }
 
-function parseResponse(text: string): GeneratedChallenge {
+function parseAIResponse(text: string): RawGeneratedChallenge {
+  // The model sometimes wraps JSON in markdown code fences — strip them.
   const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-  const parsed = JSON.parse(clean);
-  if (!parsed.html || !parsed.css || !parsed.title) throw new Error('incomplete');
-  return parsed as GeneratedChallenge;
+  const parsed = JSON.parse(clean) as RawGeneratedChallenge;
+  if (!parsed.html || !parsed.css || !parsed.title) throw new Error('AI response missing required fields');
+  return parsed;
 }
 
 export async function generateChallenge(): Promise<Challenge> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
 
   if (!apiKey) {
-    console.warn('[ChallengeGenerator] No VITE_GROQ_API_KEY found — using random built-in challenge');
-    return randomFallback();
+    console.warn('[ChallengeGenerator] VITE_GROQ_API_KEY not set — using built-in challenge');
+    return pickRandomChallenge();
   }
 
   try {
@@ -61,11 +63,11 @@ export async function generateChallenge(): Promise<Challenge> {
       model: 'llama-3.3-70b-versatile',
       temperature: 1.2,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: PROMPT }],
+      messages: [{ role: 'user', content: AI_PROMPT }],
     });
 
-    const text = completion.choices[0]?.message?.content ?? '';
-    const data = parseResponse(text);
+    const raw = completion.choices[0]?.message?.content ?? '';
+    const data = parseAIResponse(raw);
 
     return {
       id: `gen-${Date.now()}`,
@@ -73,12 +75,12 @@ export async function generateChallenge(): Promise<Challenge> {
       difficulty: data.difficulty,
       description: data.description,
       startHTML: formatHTML(data.html),
-      startCSS: '/* Escribe tu CSS aquí */\n',
+      startCSS: '/* Write your CSS here */\n',
       targetHTML: data.html,
       targetCSS: data.css,
     };
   } catch (err) {
-    console.error('[ChallengeGenerator] Generation failed, using fallback:', err);
-    return randomFallback();
+    console.error('[ChallengeGenerator] Generation failed, falling back to built-in:', err);
+    return pickRandomChallenge();
   }
 }
