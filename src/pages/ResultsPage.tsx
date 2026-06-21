@@ -32,10 +32,11 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
   const [selectedId, setSelectedId] = useState<string>(results[0]?.user.id ?? '');
   const [showCode, setShowCode]      = useState(false);
   const [codeTab, setCodeTab]        = useState<'html' | 'css'>('css');
+
+  // Keep onRematch ref stable so the socket listener never closes over a stale callback.
   const onRematchRef = useRef(onRematch);
   useEffect(() => { onRematchRef.current = onRematch; }, [onRematch]);
 
-  // Listen for game_reset from server (host triggers rematch → everyone navigates to lobby)
   useEffect(() => {
     const socket = getSocket();
     socket.on('game_reset', ({ players }: { players: { id: string; username: string }[] }) => {
@@ -50,7 +51,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
 
   return (
     <div className={styles.container}>
-      {/* ── Header ── */}
       <header className={styles.header}>
         <span className={styles.headerTitle}>{t('results_title')}</span>
         {currentRoom && (
@@ -58,7 +58,11 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
         )}
         <div className={styles.headerSpacer} />
         {currentRoom && isHost && (
-          <button className={styles.newGameButton} onClick={() => getSocket().emit('rematch')} style={{ marginRight: 8 }}>
+          <button
+            className={styles.newGameButton}
+            onClick={() => getSocket().emit('rematch')}
+            style={{ marginRight: 8 }}
+          >
             <RefreshCw size={14} />
             {t('results_rematch')}
           </button>
@@ -68,13 +72,10 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
         </button>
       </header>
 
-      {/* ── Body ── */}
       <div className={styles.body}>
-        {/* ── Sidebar: standings ── */}
         <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            {t('results_standings')}
-          </div>
+          <div className={styles.sidebarHeader}>{t('results_standings')}</div>
+
           {results.map((r) => {
             const isActive = r.user.id === selectedId;
             const isMeRow  = r.user.id === currentUser?.id;
@@ -89,24 +90,19 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
                 onClick={() => setSelectedId(r.user.id)}
               >
                 <span className={styles.playerTrophy}>
-                  {TROPHY[r.rank] ?? (
-                    <span className={styles.playerRankNum}>{r.rank}</span>
-                  )}
+                  {TROPHY[r.rank] ?? <span className={styles.playerRankNum}>{r.rank}</span>}
                 </span>
                 <div className={styles.playerInfo}>
                   <div className={styles.playerName}>
                     <span className={isMeRow ? styles.playerNameMe : ''}>
-                      {isMeRow ? currentUser?.username ?? 'tú' : r.user.username}
+                      {isMeRow ? currentUser?.username ?? t('arena_you') : r.user.username}
                     </span>
                     {isMeRow && <span className={styles.youBadge}>{t('results_you_badge')}</span>}
                   </div>
                   <div className={styles.progressBar}>
                     <div
                       className={styles.progressFill}
-                      style={{
-                        width: `${r.similarity}%`,
-                        backgroundColor: scoreColor(r.similarity),
-                      }}
+                      style={{ width: `${r.similarity}%`, backgroundColor: scoreColor(r.similarity) }}
                     />
                   </div>
                 </div>
@@ -118,16 +114,16 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
           })}
         </aside>
 
-        {/* ── Main: comparison ── */}
         <main className={styles.main}>
-          {/* Sub-header */}
           <div className={styles.comparisonHeader}>
             <div className={styles.comparingText}>
               {t('results_comparing')}&nbsp;
               <span className={styles.comparingName}>
                 {isMe ? currentUser?.username ?? t('arena_you') : selected?.user.username}
               </span>
-              <span className={styles.comparingScore}>{selected?.similarity ?? 0}{t('results_similarity')}</span>
+              <span className={styles.comparingScore}>
+                {selected?.similarity ?? 0}{t('results_similarity')}
+              </span>
             </div>
             <button className={styles.codeToggleBtn} onClick={() => setShowCode((v) => !v)}>
               <Code2 size={13} />
@@ -135,22 +131,17 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
             </button>
           </div>
 
-          {/* Preview vs code toggle */}
           {showCode ? (
             <div className={styles.codeView}>
               <div className={styles.codeTabs}>
                 <button
                   className={`${styles.codeTab} ${codeTab === 'html' ? styles.codeTabActive : ''}`}
                   onClick={() => setCodeTab('html')}
-                >
-                  HTML
-                </button>
+                >HTML</button>
                 <button
                   className={`${styles.codeTab} ${codeTab === 'css' ? styles.codeTabActive : ''}`}
                   onClick={() => setCodeTab('css')}
-                >
-                  CSS
-                </button>
+                >CSS</button>
               </div>
               <pre className={styles.codeBlock}>
                 {codeTab === 'html' ? challenge.targetHTML : (selected?.css || t('results_no_css'))}
@@ -158,7 +149,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
             </div>
           ) : (
             <div className={styles.splitView}>
-              {/* Target */}
               <div className={styles.splitPane}>
                 <div className={`${styles.splitLabel} ${styles.splitLabelTarget}`}>
                   {t('results_ai_objective')}
@@ -167,22 +157,21 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
                   srcDoc={buildDoc(challenge.targetHTML, challenge.targetCSS)}
                   sandbox="allow-scripts"
                   className={styles.previewFrame}
-                  title="IA objetivo"
+                  title="AI objective"
                 />
               </div>
 
               <div className={styles.splitPane}>
                 <div className={styles.splitLabel}>
-                  {isMe ? t('results_your_result') : `${t('results_result_of')} ${selected?.user.username.toUpperCase()}`}
+                  {isMe
+                    ? t('results_your_result')
+                    : `${t('results_result_of')} ${selected?.user.username.toUpperCase()}`}
                 </div>
                 <iframe
-                  srcDoc={buildDoc(
-                    challenge.targetHTML,
-                    selected?.css ?? ''
-                  )}
+                  srcDoc={buildDoc(challenge.targetHTML, selected?.css ?? '')}
                   sandbox="allow-scripts"
                   className={styles.previewFrame}
-                  title="Resultado del jugador"
+                  title="Player result"
                 />
               </div>
             </div>
