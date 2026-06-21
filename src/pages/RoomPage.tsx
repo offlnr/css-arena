@@ -19,10 +19,20 @@ interface PublicRoom {
 type TabType = 'create' | 'join';
 type Difficulty = 'Fácil' | 'Medio' | 'Difícil';
 
-const generateRoomCode = () => {
+// These internal difficulty keys stay in Spanish — the server and AI prompt reference them directly.
+const DIFFICULTIES: { key: Difficulty; color: string }[] = [
+  { key: 'Fácil',   color: '#22C55E' },
+  { key: 'Medio',   color: '#FBBF24' },
+  { key: 'Difícil', color: '#EF4444' },
+];
+
+const DURATIONS     = [3, 5, 10, 15];
+const PLAYER_COUNTS = [2, 4, 6, 8];
+
+function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-};
+}
 
 interface RoomPageProps {
   onBack: () => void;
@@ -30,33 +40,38 @@ interface RoomPageProps {
   onRoomJoined: (room: Room) => void;
 }
 
-const DURATIONS = [3, 5, 10, 15];
-const PLAYER_COUNTS = [2, 4, 6, 8];
-const DIFFICULTIES: { key: Difficulty; color: string }[] = [
-  { key: 'Fácil',   color: '#22C55E' },
-  { key: 'Medio',   color: '#FBBF24' },
-  { key: 'Difícil', color: '#EF4444' },
-];
-
 export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoomJoined }) => {
   const { currentUser } = useGameStore();
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<TabType>('create');
-  const [roomName, setRoomName]   = useState('Mi sala épica');
-  const [roomCode]                = useState(generateRoomCode);
-  const [joinCode, setJoinCode]   = useState('');
-  const [duration, setDuration]   = useState(5);
-  const [maxPlayers, setMaxPlayers] = useState(4);
-  const [difficulty, setDifficulty] = useState<Difficulty>('Medio');
-  const [isPublic, setIsPublic]   = useState(false);
-  const [copied, setCopied]       = useState(false);
+
+  const [activeTab,   setActiveTab]   = useState<TabType>('create');
+  const [roomName,    setRoomName]    = useState('Mi sala épica');
+  const [roomCode]                    = useState(generateRoomCode);
+  const [joinCode,    setJoinCode]    = useState('');
+  const [duration,    setDuration]    = useState(5);
+  const [maxPlayers,  setMaxPlayers]  = useState(4);
+  const [difficulty,  setDifficulty]  = useState<Difficulty>('Medio');
+  const [isPublic,    setIsPublic]    = useState(false);
+  const [copied,      setCopied]      = useState(false);
   const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
+
+  // Maps internal difficulty key to translated display label and description.
+  const diffLabel: Record<Difficulty, string> = {
+    'Fácil':   t('diff_easy'),
+    'Medio':   t('diff_medium'),
+    'Difícil': t('diff_hard'),
+  };
+  const diffDesc: Record<Difficulty, string> = {
+    'Fácil':   t('diff_easy_desc'),
+    'Medio':   t('diff_medium_desc'),
+    'Difícil': t('diff_hard_desc'),
+  };
 
   const fetchRooms = useCallback(async () => {
     setLoadingRooms(true);
     try {
-      const res = await fetch(`${SERVER_URL}/rooms`);
+      const res  = await fetch(`${SERVER_URL}/rooms`);
       const data = await res.json() as PublicRoom[];
       setPublicRooms(data);
     } catch {
@@ -94,9 +109,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
     onRoomCreated(buildRoom(roomCode, roomName.trim()));
   };
 
-  const diffLabel: Record<Difficulty, string> = { 'Fácil': t('diff_easy'), 'Medio': t('diff_medium'), 'Difícil': t('diff_hard') };
-  const diffDesc:  Record<Difficulty, string> = { 'Fácil': t('diff_easy_desc'), 'Medio': t('diff_medium_desc'), 'Difícil': t('diff_hard_desc') };
-
   const handleJoin = () => {
     const code = joinCode.trim().toUpperCase();
     if (code.length < 4) return;
@@ -117,7 +129,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
       </header>
 
       <main className={styles.main}>
-        {/* Tabs */}
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${activeTab === 'create' ? styles.tabActive : ''}`}
@@ -137,7 +148,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
         <div className={styles.card}>
           {activeTab === 'create' ? (
             <div className={styles.form}>
-              {/* Room name */}
               <div className={styles.field}>
                 <label className={styles.label}>{t('room_name_label')}</label>
                 <input
@@ -148,7 +158,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 />
               </div>
 
-              {/* Room code */}
               <div className={styles.field}>
                 <label className={styles.label}>{t('room_code_label')}</label>
                 <div className={styles.codeRow}>
@@ -163,7 +172,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 </div>
               </div>
 
-              {/* Duration + Players side by side */}
               <div className={styles.optionsRow}>
                 <div className={styles.optionGroup}>
                   <span className={styles.optionLabel}>{t('room_duration_label')}</span>
@@ -182,8 +190,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
 
                 <div className={styles.optionGroup}>
                   <span className={styles.optionLabel}>
-                    <Users size={11} />
-                    &nbsp;{t('room_players_label')}
+                    <Users size={11} />&nbsp;{t('room_players_label')}
                   </span>
                   <div className={styles.optionGrid}>
                     {PLAYER_COUNTS.map((n) => (
@@ -199,7 +206,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 </div>
               </div>
 
-              {/* Difficulty */}
               <div className={styles.field}>
                 <label className={styles.label}>{t('room_difficulty_label')}</label>
                 <div className={styles.difficultyList}>
@@ -218,11 +224,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 </div>
               </div>
 
-              {/* Public toggle */}
-              <button
-                className={styles.publicRow}
-                onClick={() => setIsPublic((v) => !v)}
-              >
+              <button className={styles.publicRow} onClick={() => setIsPublic((v) => !v)}>
                 <Globe size={16} className={styles.publicIcon} />
                 <div className={styles.publicText}>
                   <span className={styles.publicTitle}>{t('room_public_title')}</span>
@@ -231,7 +233,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 <div className={`${styles.publicRadio} ${isPublic ? styles.publicRadioActive : ''}`} />
               </button>
 
-              {/* Summary */}
               <div className={styles.summary}>
                 <span className={styles.summaryLabel}>{t('room_summary')}</span>
                 {' '}{duration} {t('room_summary_min')} · {t('room_summary_max')} {maxPlayers} {t('room_summary_players')} ·{' '}
@@ -244,7 +245,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
             </div>
           ) : (
             <div className={styles.form}>
-              {/* Public rooms list */}
               <div className={styles.field}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <label className={styles.label} style={{ margin: 0 }}>{t('room_available_label')}</label>
@@ -257,10 +257,15 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                     {t('room_refresh')}
                   </button>
                 </div>
+
                 {loadingRooms ? (
-                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>{t('room_searching')}</p>
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>
+                    {t('room_searching')}
+                  </p>
                 ) : publicRooms.length === 0 ? (
-                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>{t('room_no_rooms')}</p>
+                  <p style={{ color: '#707070', fontSize: '0.85rem', textAlign: 'center', padding: '16px 0' }}>
+                    {t('room_no_rooms')}
+                  </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {publicRooms.map((r) => (
@@ -268,16 +273,16 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                         key={r.code}
                         onClick={() => setJoinCode(r.code)}
                         style={{
-                          background: joinCode === r.code ? '#1E2030' : '#13151A',
-                          border: `1px solid ${joinCode === r.code ? '#6366F1' : '#2A2D3A'}`,
+                          background:   joinCode === r.code ? '#1E2030' : '#13151A',
+                          border:       `1px solid ${joinCode === r.code ? '#6366F1' : '#2A2D3A'}`,
                           borderRadius: 8,
-                          padding: '10px 14px',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
+                          padding:      '10px 14px',
+                          cursor:       'pointer',
+                          textAlign:    'left',
+                          display:      'flex',
+                          alignItems:   'center',
                           justifyContent: 'space-between',
-                          gap: 8,
+                          gap:          8,
                         }}
                       >
                         <div>
@@ -289,7 +294,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ color: '#A0A0A0', fontSize: '0.8rem' }}>{r.players}/{r.maxPlayers}</span>
                           <Users size={13} color="#A0A0A0" />
-                          <span style={{ color: '#6366F1', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.1em' }}>{r.code}</span>
+                          <span style={{ color: '#6366F1', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.1em' }}>
+                            {r.code}
+                          </span>
                         </div>
                       </button>
                     ))}
@@ -297,7 +304,6 @@ export const RoomPage: React.FC<RoomPageProps> = ({ onBack, onRoomCreated, onRoo
                 )}
               </div>
 
-              {/* Manual code input */}
               <div className={styles.field}>
                 <label className={styles.label}>{t('room_manual_label')}</label>
                 <input
