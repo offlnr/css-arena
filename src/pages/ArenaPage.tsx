@@ -29,15 +29,20 @@ function buildDoc(html: string, css: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script>document.addEventListener('click',function(e){var el=e.target;while(el){if(el.tagName==='A'||el.tagName==='BUTTON'){e.preventDefault();e.stopPropagation();return;}el=el.parentElement;}},true);<\/script><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#f0f2f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}${css}</style></head><body>${html}</body></html>`;
 }
 
-
 export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   const { currentRoom, currentUser, setGameState, pendingChallenge, setPendingChallenge, roomPlayers } = useGameStore();
   const { t } = useI18n();
 
-  // ── Challenge loading state ─────────────────────────────────────────────
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [challenge,   setChallenge]   = useState<Challenge | null>(null);
+  const [loadStatus,  setLoadStatus]  = useState<'loading' | 'ready' | 'error'>('loading');
+  const [activeTab,   setActiveTab]   = useState<CodeTab>('html');
+  const [htmlCode,    setHtmlCode]    = useState('');
+  const [cssCode,     setCssCode]     = useState('');
+  const [timeLeft,    setTimeLeft]    = useState((currentRoom?.duration ?? 5) * 60);
+  const [players,     setPlayers]     = useState<Player[]>([]);
 
+  // Load challenge on mount: use the one forwarded by the host (via socket) if available,
+  // otherwise generate a new one directly from the AI.
   useEffect(() => {
     if (pendingChallenge) {
       setChallenge(pendingChallenge);
@@ -61,14 +66,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       .catch(() => setLoadStatus('error'));
   };
 
-  // ── Game state (only active after challenge is ready) ───────────────────
-  const [activeTab, setActiveTab] = useState<CodeTab>('html');
-  const [htmlCode, setHtmlCode]   = useState('');
-  const [cssCode,  setCssCode]    = useState('');
-  const [timeLeft, setTimeLeft]   = useState((currentRoom?.duration ?? 5) * 60);
-  const [players, setPlayers]     = useState<Player[]>([]);
-
-  // Populate editor + players once challenge loads
+  // Populate the editor and player list once the challenge is available.
   useEffect(() => {
     if (!challenge) return;
     setHtmlCode(challenge.startHTML);
@@ -82,19 +80,18 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     setPlayers(initial);
   }, [challenge, currentUser, roomPlayers]);
 
-  // Sync leaderboard via socket
+  // Keep the leaderboard in sync with score updates broadcast by the server.
   useEffect(() => {
     if (loadStatus !== 'ready') return;
     const socket = getSocket();
 
     socket.on('leaderboard_update', ({ board }: { board: { id: string; username: string; score: number; css: string }[] }) => {
       const myId = socket.id ?? currentUser?.id ?? 'me';
-      // Store opponents' CSS so handleEnd can include it in results
       board.forEach((p) => { if (p.id !== myId && p.css) playerCssRef.current.set(p.id, p.css); });
       setPlayers(board.map((p) => ({ id: p.id, username: p.username, score: p.score, isMe: p.id === myId })));
     });
 
-    // Use server timer as source of truth so all clients stay in sync
+    // Use the server timer as source of truth so all clients stay in sync.
     socket.on('time_sync', ({ timeLeft: serverTime }: { timeLeft: number }) => {
       setTimeLeft(serverTime);
     });
@@ -105,6 +102,8 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     };
   }, [loadStatus, currentUser]);
 
+  // Refs let handleEnd read the latest time/players/css without being listed as effect deps,
+  // which would cause the interval to restart on every score update.
   const resultRef    = useRef<HTMLIFrameElement>(null);
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const playersRef   = useRef<Player[]>([]);
@@ -116,9 +115,9 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
   useEffect(() => { cssCodeRef.current  = cssCode;  }, [cssCode]);
 
+  // Debounced visual scoring ref — cleared on every keystroke, fired 800 ms after the last one.
   const visualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Update iframe preview in real time; debounce visual scoring
   useEffect(() => {
     if (!challenge) return;
     const iframe = resultRef.current;
@@ -129,7 +128,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     doc.write(buildDoc(htmlCode, cssCode));
     doc.close();
 
-    // Skip scoring until the player actually changes the CSS
+    // Skip scoring until the player actually modifies the starting CSS.
     if (cssCode.trim() === challenge.startCSS.trim() || !cssCode.trim()) {
       setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score: 0 } : p)));
       getSocket().emit('code_update', { score: 0, css: '' });
@@ -139,19 +138,15 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     if (visualTimerRef.current) clearTimeout(visualTimerRef.current);
     visualTimerRef.current = setTimeout(async () => {
       try {
-        const score = await calcVisualScore(
-          challenge.targetHTML, challenge.targetCSS,
-          htmlCode, cssCode,
-        );
+        const score = await calcVisualScore(challenge.targetHTML, challenge.targetCSS, htmlCode, cssCode);
         setPlayers((prev) => prev.map((p) => (p.isMe ? { ...p, score } : p)));
         getSocket().emit('code_update', { score, css: cssCode });
       } catch {
-        // scoring failed silently — keep previous score
+        // Scoring failure is non-fatal — keep the previous score displayed.
       }
     }, 800);
   }, [htmlCode, cssCode, challenge]);
 
-  // handleEnd sin timeLeft ni players en deps — usa refs para evitar reinicios del timer
   const handleEnd = useCallback(() => {
     clearInterval(timerRef.current!);
 
@@ -159,32 +154,32 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     const elapsed = (currentRoom?.duration ?? 5) * 60 - timeLeftRef.current;
     const sorted  = [...current].sort((a, b) => b.score - a.score);
     const results: GameResult[] = sorted.map((p, i) => ({
-      rank: i + 1,
-      user: { id: p.id, username: p.isMe ? (currentUser?.username ?? 'tú') : p.username },
-      similarity: Math.round(p.score),
+      rank:        i + 1,
+      user:        { id: p.id, username: p.isMe ? (currentUser?.username ?? 'tú') : p.username },
+      similarity:  Math.round(p.score),
       submittedAt: new Date(),
-      time: elapsed,
-      css: p.isMe ? cssCodeRef.current : (playerCssRef.current.get(p.id) ?? ''),
+      time:        elapsed,
+      css:         p.isMe ? cssCodeRef.current : (playerCssRef.current.get(p.id) ?? ''),
     }));
 
     setGameState({
-      roomId: currentRoom?.id ?? '',
+      roomId:    currentRoom?.id ?? '',
       challenge: {
-        id: challenge?.id ?? '',
+        id:         challenge?.id ?? '',
         targetHTML: challenge?.targetHTML ?? '',
-        targetCSS: challenge?.targetCSS ?? '',
+        targetCSS:  challenge?.targetCSS ?? '',
         difficulty: challenge?.difficulty ?? 'Fácil',
       },
       players: sorted.map((p) => ({ id: p.id, username: p.username })),
-      status: 'finished',
+      status:  'finished',
       results,
     });
 
     onGameEnd(results);
+  // timeLeft and players are intentionally excluded — the refs provide their values
+  // so this callback stays stable for the lifetime of the game.
   }, [currentRoom, currentUser, challenge, setGameState, onGameEnd]);
-  // ↑ sin timeLeft ni players — estable durante toda la partida
 
-  // Timer — solo arranca cuando el desafío está listo
   useEffect(() => {
     if (loadStatus !== 'ready') return;
     timerRef.current = setInterval(() => {
@@ -196,7 +191,6 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     return () => clearInterval(timerRef.current!);
   }, [loadStatus]);
 
-  // Disparar handleEnd cuando el timer llega a 0
   const hasEndedRef = useRef(false);
   useEffect(() => {
     if (timeLeft === 0 && loadStatus === 'ready' && !hasEndedRef.current) {
@@ -205,14 +199,12 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
     }
   }, [timeLeft, loadStatus, handleEnd]);
 
-
-  // ── Helpers ─────────────────────────────────────────────────────────────
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-  const myScore = players.find((p) => p.isMe)?.score ?? 0;
-  const lineCount = (activeTab === 'html' ? htmlCode : cssCode).split('\n').length;
+  const myScore       = players.find((p) => p.isMe)?.score ?? 0;
+  const lineCount     = (activeTab === 'html' ? htmlCode : cssCode).split('\n').length;
 
   const rankClass = (i: number) =>
     i === 0 ? styles.playerRankGold : i === 1 ? styles.playerRankSilver : i === 2 ? styles.playerRankBronze : '';
@@ -220,7 +212,6 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
   const scoreColor = (s: number) =>
     s >= 75 ? '#22C55E' : s >= 40 ? '#FBBF24' : '#EF4444';
 
-  // ── Loading screen ───────────────────────────────────────────────────────
   if (loadStatus === 'loading') {
     return (
       <div className={styles.loadingScreen}>
@@ -242,24 +233,26 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         <p className={styles.errorTitle}>{t('arena_error_title')}</p>
         <p className={styles.errorMsg}>{t('arena_error_msg')}</p>
         <button className={styles.errorBtn} onClick={retry}>{t('arena_retry')}</button>
-        <button className={styles.errorBtn} style={{ background: 'none', border: '1px solid #3A4048', color: '#A0A0A0' }} onClick={onExit}>{t('arena_back')}</button>
+        <button
+          className={styles.errorBtn}
+          style={{ background: 'none', border: '1px solid #3A4048', color: '#A0A0A0' }}
+          onClick={onExit}
+        >
+          {t('arena_back')}
+        </button>
       </div>
     );
   }
 
-  // ── Arena ────────────────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.logo}>
             <span className={styles.logoIcon}>⚡</span>
             <span className={styles.logoText}>CSS Arena</span>
           </div>
-          <div className={styles.roomCode}>
-            # {currentRoom?.code ?? 'DEMO'}
-          </div>
+          <div className={styles.roomCode}># {currentRoom?.code ?? 'DEMO'}</div>
         </div>
 
         <div className={styles.timer}>
@@ -277,9 +270,8 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         </div>
       </header>
 
-      {/* 3-column layout */}
       <div className={styles.layout}>
-        {/* Editor */}
+        {/* Code editor */}
         <div className={styles.editorPanel}>
           <div className={styles.editorHeader}>
             <div className={styles.editorTabs}>
@@ -300,51 +292,48 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
               key={activeTab}
               language={activeTab}
               value={activeTab === 'html' ? htmlCode : cssCode}
-              onChange={(val) =>
-                activeTab === 'html' ? setHtmlCode(val ?? '') : setCssCode(val ?? '')
-              }
+              onChange={(val) => activeTab === 'html' ? setHtmlCode(val ?? '') : setCssCode(val ?? '')}
               theme="vs-dark"
               beforeMount={(monaco) => {
-                // Guarded internally — safe to call on every remount
-                registerCssCompletions(monaco)
+                // Safe to call on every remount — registerCssCompletions guards against duplicate registration.
+                registerCssCompletions(monaco);
               }}
               onMount={(editor) => {
-                // Forzar sugerencias en cada cambio de texto.
-                // Necesario cuando los workers del CDN tardan en cargar o están bloqueados.
+                // Trigger suggestions on every keystroke because CDN-loaded Monaco workers
+                // may not finish initializing before the user starts typing.
                 editor.onDidChangeModelContent(() => {
-                  const pos   = editor.getPosition()
-                  const model = editor.getModel()
-                  if (!pos || !model) return
-                  const word = model.getWordUntilPosition(pos)
-                  if (word.word.length > 0) {
-                    editor.trigger('keyboard', 'editor.action.triggerSuggest', {})
+                  const pos   = editor.getPosition();
+                  const model = editor.getModel();
+                  if (!pos || !model) return;
+                  if (model.getWordUntilPosition(pos).word.length > 0) {
+                    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
                   }
-                })
+                });
               }}
               options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                padding: { top: 8, bottom: 8 },
-                fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-                automaticLayout: true,
-                quickSuggestions: true,
-                quickSuggestionsDelay: 0,
+                minimap:                  { enabled: false },
+                fontSize:                 13,
+                lineNumbers:              'on',
+                scrollBeyondLastLine:     false,
+                wordWrap:                 'on',
+                padding:                  { top: 8, bottom: 8 },
+                fontFamily:               "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+                automaticLayout:          true,
+                quickSuggestions:         true,
+                quickSuggestionsDelay:    0,
                 suggestOnTriggerCharacters: true,
-                acceptSuggestionOnEnter: 'on',
-                tabCompletion: 'on',
-                wordBasedSuggestions: 'off',
-                suggest: { showWords: false },
-                hover: { enabled: true },
-                formatOnPaste: true,
+                acceptSuggestionOnEnter:  'on',
+                tabCompletion:            'on',
+                wordBasedSuggestions:     'off',
+                suggest:                  { showWords: false },
+                hover:                    { enabled: true },
+                formatOnPaste:            true,
               }}
             />
           </div>
         </div>
 
-        {/* Previews */}
+        {/* Live previews */}
         <div className={styles.previewPanel}>
           <div className={`${styles.previewSection} ${styles.previewSectionTarget}`}>
             <div className={styles.previewHeader}>
@@ -356,7 +345,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
                 srcDoc={buildDoc(challenge!.targetHTML, challenge!.targetCSS)}
                 sandbox="allow-scripts"
                 className={styles.previewIframe}
-                title="Objetivo IA"
+                title="AI objective"
               />
             </div>
           </div>
@@ -384,7 +373,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
                 ref={resultRef}
                 sandbox="allow-scripts allow-same-origin"
                 className={styles.previewIframe}
-                title="Tu resultado"
+                title="Your result"
               />
             </div>
           </div>
