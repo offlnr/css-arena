@@ -1,4 +1,4 @@
-# ⚡ CSS Arena
+# CSS Arena
 
 > **Multiplayer CSS battle game.** Race against other players to replicate an AI-generated UI component using HTML & CSS — whoever gets closest wins.
 
