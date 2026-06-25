@@ -201,3 +201,33 @@
   from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem 0.875rem;
+  }
+
+  .wrapper {
+    gap: 1.125rem;
+  }
+
+  .logoBadge {
+    width: 56px;
+    height: 56px;
+  }
+
+  .title {
+    font-size: 1.875rem;
+  }
+
+  .card {
+    padding: 1.25rem 1.125rem 1rem;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
