@@ -457,3 +457,97 @@
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ── Mobile: stack editor → previews → leaderboard ── */
+@media (max-width: 768px) {
+  /* Allow the page to scroll instead of being clipped at 100vh */
+  .container {
+    height: auto;
+    min-height: 100svh;
+    overflow-y: auto;
+  }
+
+  /* Stack the three panels vertically */
+  .layout {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+  }
+
+  /* Editor: fixed viewport slice so Monaco has a defined height */
+  .editorPanel {
+    width: 100%;
+    min-width: 0;
+    height: 42vh;
+    flex-shrink: 0;
+    border-right: none;
+    border-bottom: 1px solid #3A4048;
+  }
+
+  /* Previews: side-by-side in a short strip */
+  .previewPanel {
+    flex-direction: row;
+    height: 36vh;
+    flex-shrink: 0;
+  }
+
+  .previewSection {
+    min-height: 0;
+  }
+
+  /* Leaderboard: horizontal bar at the bottom */
+  .leaderboard {
+    width: 100%;
+    min-width: 0;
+    border-left: none;
+    border-top: 1px solid #3A4048;
+    flex-direction: row;
+    align-items: center;
+    height: auto;
+    min-height: 44px;
+  }
+
+  .leaderboardHeader {
+    border-bottom: none;
+    border-right: 1px solid #3A4048;
+    height: 100%;
+    padding: 0 0.75rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Scroll players horizontally, hide scrollbar */
+  .playerList {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0;
+    scrollbar-width: none;
+    flex: 1;
+  }
+  .playerList::-webkit-scrollbar { display: none; }
+
+  .playerRow {
+    padding: 0.3rem 0.75rem;
+    flex-shrink: 0;
+  }
+  .playerRow:hover { background-color: transparent; }
+}
+
+/* ── Very small phones: hide decorative header elements ── */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 0.625rem;
+    gap: 0.5rem;
+  }
+
+  /* Drop logo text and room code to save space for the timer */
+  .logoText { display: none; }
+  .roomCode  { display: none; }
+
+  .headerBtn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
