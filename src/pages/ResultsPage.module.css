@@ -319,3 +319,91 @@
   white-space: pre;
   min-height: 0;
 }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  /* Allow full-page scroll */
+  .container {
+    min-height: 100svh;
+    overflow-y: auto;
+  }
+
+  /* Wrap header items on narrow screens */
+  .header {
+    height: auto;
+    padding: 0.625rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .headerSpacer { display: none; }
+
+  /* Stack sidebar above main content */
+  .body {
+    flex-direction: column;
+    overflow: visible;
+    min-height: 0;
+    flex: none;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid #3A4048;
+    max-height: 220px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .main {
+    overflow: visible;
+    flex: none;
+  }
+
+  /* Wrap comparison header on small screens */
+  .comparisonHeader {
+    height: auto;
+    padding: 0.625rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Stack split panes vertically */
+  .splitView {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+  }
+
+  .splitPane {
+    height: 52vw;
+    min-height: 180px;
+    flex: none;
+  }
+
+  .splitPane + .splitPane {
+    border-left: none;
+    border-top: 3px solid #3A4048;
+  }
+
+  /* Code view scrolls within a capped height */
+  .codeView {
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .codeBlock {
+    max-height: 60vh;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .headerTitle   { font-size: 0.875rem; }
+  .roomCodeBadge { display: none; }
+
+  .newGameButton {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+}
