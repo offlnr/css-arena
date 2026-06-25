@@ -7,6 +7,7 @@ import { ResultsPage } from './pages/ResultsPage';
 import { useGameStore } from './stores/gameStore';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { LanguageToggle } from './components/LanguageToggle';
+import styles from './App.module.css';
 import type { User, Room, GameResult } from './types';
 
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
@@ -56,7 +57,7 @@ function App() {
 
   return (
     <LanguageProvider>
-      <div style={{ position: 'fixed', top: 12, right: 16, zIndex: 1000 }}>
+      <div className={styles.langToggleWrapper}>
         <LanguageToggle />
       </div>
       {page === 'index' && (
