@@ -191,7 +191,7 @@ const es = {
   results_your_result:  'TU RESULTADO',
   results_result_of:    'RESULTADO DE',
   results_no_css:       '/* Sin CSS escrito */',
-} satisfies typeof en;
+} satisfies Record<keyof typeof en, string>;
 
 export const translations = { en, es } as const;
 
