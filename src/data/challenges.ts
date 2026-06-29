@@ -9,26 +9,43 @@ export interface Challenge {
   targetCSS: string;
 }
 
+const START_CSS = '/* Escribe tu CSS aquí */\n';
+
+// Each static challenge shares the same HTML for start and target, so we only
+// define it once and let this helper expand it into the full Challenge shape.
+function makeChallenge(p: {
+  id: string;
+  title: string;
+  difficulty: Challenge['difficulty'];
+  description: string;
+  html: string;
+  css: string;
+}): Challenge {
+  return {
+    id:          p.id,
+    title:       p.title,
+    difficulty:  p.difficulty,
+    description: p.description,
+    startHTML:   p.html,
+    startCSS:    START_CSS,
+    targetHTML:  p.html,
+    targetCSS:   p.css,
+  };
+}
+
 export const CHALLENGES: Challenge[] = [
-  {
-    id: 'card-profile-1',
-    title: 'Tarjeta de Perfil',
-    difficulty: 'Fácil',
+  makeChallenge({
+    id:          'card-profile-1',
+    title:       'Tarjeta de Perfil',
+    difficulty:  'Fácil',
     description: 'Replica esta tarjeta de perfil con avatar, texto y botón.',
-    startHTML: `<div class="card">
+    html: `<div class="card">
   <div class="avatar"></div>
   <h1>Bienvenido</h1>
   <p>Este es tu primer diseño</p>
   <button>Comenzar</button>
 </div>`,
-    startCSS: `/* Escribe tu CSS aquí */\n`,
-    targetHTML: `<div class="card">
-  <div class="avatar"></div>
-  <h1>Bienvenido</h1>
-  <p>Este es tu primer diseño</p>
-  <button>Comenzar</button>
-</div>`,
-    targetCSS: `body {
+    css: `body {
   background: #dde3ec;
   display: flex;
   align-items: center;
@@ -94,13 +111,14 @@ button {
 button:hover {
   background: #4a7aa6;
 }`,
-  },
-  {
-    id: 'navbar-2',
-    title: 'Barra de Navegación',
-    difficulty: 'Medio',
+  }),
+
+  makeChallenge({
+    id:          'navbar-2',
+    title:       'Barra de Navegación',
+    difficulty:  'Medio',
     description: 'Replica esta barra de navegación con logo, links y botón.',
-    startHTML: `<nav class="navbar">
+    html: `<nav class="navbar">
   <div class="nav-logo">MyApp</div>
   <ul class="nav-links">
     <li><a href="#">Inicio</a></li>
@@ -109,17 +127,7 @@ button:hover {
   </ul>
   <button class="nav-cta">Comenzar</button>
 </nav>`,
-    startCSS: `/* Escribe tu CSS aquí */\n`,
-    targetHTML: `<nav class="navbar">
-  <div class="nav-logo">MyApp</div>
-  <ul class="nav-links">
-    <li><a href="#">Inicio</a></li>
-    <li><a href="#">Productos</a></li>
-    <li><a href="#">Nosotros</a></li>
-  </ul>
-  <button class="nav-cta">Comenzar</button>
-</nav>`,
-    targetCSS: `body {
+    css: `body {
   margin: 0;
   background: #f5f5f5;
   font-family: sans-serif;
@@ -175,13 +183,14 @@ button:hover {
 .nav-cta:hover {
   background: #4f46e5;
 }`,
-  },
-  {
-    id: 'pricing-card-3',
-    title: 'Tarjeta de Precio',
-    difficulty: 'Difícil',
+  }),
+
+  makeChallenge({
+    id:          'pricing-card-3',
+    title:       'Tarjeta de Precio',
+    difficulty:  'Difícil',
     description: 'Replica esta tarjeta de precio con badge, lista de features y botón.',
-    startHTML: `<div class="pricing-card">
+    html: `<div class="pricing-card">
   <div class="badge">Popular</div>
   <div class="plan">Pro</div>
   <div class="price">
@@ -197,24 +206,7 @@ button:hover {
   </ul>
   <button>Comenzar ahora</button>
 </div>`,
-    startCSS: `/* Escribe tu CSS aquí */\n`,
-    targetHTML: `<div class="pricing-card">
-  <div class="badge">Popular</div>
-  <div class="plan">Pro</div>
-  <div class="price">
-    <span class="currency">$</span>
-    <span class="amount">29</span>
-    <span class="period">/mes</span>
-  </div>
-  <ul class="features">
-    <li>Proyectos ilimitados</li>
-    <li>10 GB almacenamiento</li>
-    <li>Soporte prioritario</li>
-    <li>Análisis avanzado</li>
-  </ul>
-  <button>Comenzar ahora</button>
-</div>`,
-    targetCSS: `body {
+    css: `body {
   margin: 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
@@ -323,5 +315,5 @@ button {
 button:hover {
   opacity: 0.9;
 }`,
-  },
+  }),
 ];
