@@ -13,10 +13,10 @@ import type { User, Room, GameResult } from './types';
 type AppPage = 'index' | 'room' | 'lobby' | 'arena' | 'results';
 
 function App() {
-  const [page, setPage]       = useState<AppPage>('index');
-  const [isHost, setIsHost]   = useState(false);
+  const [page, setPage]           = useState<AppPage>('index');
+  const [isHost, setIsHost]       = useState(false);
   const [isRematch, setIsRematch] = useState(false);
-  const [results, setResults] = useState<GameResult[]>([]);
+  const [results, setResults]     = useState<GameResult[]>([]);
   const { setCurrentUser, setCurrentRoom, reset } = useGameStore();
 
   const handleEnterRoom = useCallback((username: string) => {
@@ -55,6 +55,16 @@ function App() {
     setPage('lobby');
   }, []);
 
+  const handleLobbyStart = useCallback(() => {
+    setIsRematch(false);
+    setPage('arena');
+  }, []);
+
+  const handleLobbyBack = useCallback(() => {
+    setIsRematch(false);
+    setPage('room');
+  }, []);
+
   return (
     <LanguageProvider>
       <div className={styles.langToggleWrapper}>
@@ -79,8 +89,8 @@ function App() {
         <LobbyPage
           isHost={isHost}
           isRematch={isRematch}
-          onStart={() => { setIsRematch(false); setPage('arena'); }}
-          onBack={() => { setIsRematch(false); setPage('room'); }}
+          onStart={handleLobbyStart}
+          onBack={handleLobbyBack}
         />
       )}
 
