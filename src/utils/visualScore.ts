@@ -20,6 +20,16 @@ const VISUAL_PROPS = [
   'object-fit', 'z-index', 'cursor',
 ];
 
+// Scoring tolerances — values within these thresholds receive full credit.
+const COLOR_TOLERANCE  = 20;   // max per-channel delta before partial credit kicks in
+const COLOR_MAX        = 255;  // full channel range for gradient scoring
+const PX_TOLERANCE     = 4;    // pixel units: ±4 px counts as a match
+const EM_TOLERANCE     = 0.15; // em/rem units: ±0.15 em counts as a match
+
+// Hidden iframe is rendered offscreen at a fixed size so computed styles are stable.
+const IFRAME_LEFT   = -600;
+const IFRAME_SIZE   =  500;
+
 function parseRgb(v: string): [number, number, number] | null {
   const m = v.match(/rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
   return m ? [+m[1], +m[2], +m[3]] : null;
@@ -34,7 +44,6 @@ function propScore(prop: string, a: string, b: string): number {
   if (!a || !b) return 0;
   if (a === b) return 1;
 
-  // Color: tolerance ±20 per channel
   if (prop.includes('color')) {
     const ca = parseRgb(a), cb = parseRgb(b);
     if (ca && cb) {
@@ -43,15 +52,14 @@ function propScore(prop: string, a: string, b: string): number {
         Math.abs(ca[1] - cb[1]),
         Math.abs(ca[2] - cb[2]),
       );
-      return d <= 20 ? 1 : Math.max(0, 1 - d / 255);
+      return d <= COLOR_TOLERANCE ? 1 : Math.max(0, 1 - d / COLOR_MAX);
     }
   }
 
-  // Numeric: full credit within tolerance, partial credit beyond
   const na = parseNum(a), nb = parseNum(b);
   if (na !== null && nb !== null) {
     const unit = a.replace(/^-?[\d.]+/, '');
-    const tol  = unit.includes('em') || unit.includes('rem') ? 0.15 : 4;
+    const tol  = unit.includes('em') || unit.includes('rem') ? EM_TOLERANCE : PX_TOLERANCE;
     const diff = Math.abs(na - nb);
     if (diff <= tol) return 1;
     const max = Math.max(Math.abs(na), Math.abs(nb), 1);
@@ -72,7 +80,7 @@ ${css}
 function renderInIframe(html: string, css: string): Promise<{ doc: Document; cleanup: () => void }> {
   return new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;left:-600px;top:0;width:500px;height:500px;border:none;visibility:hidden;';
+    iframe.style.cssText = `position:fixed;left:${IFRAME_LEFT}px;top:0;width:${IFRAME_SIZE}px;height:${IFRAME_SIZE}px;border:none;visibility:hidden;`;
     iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     document.body.appendChild(iframe);
     const cleanup = () => { if (document.body.contains(iframe)) document.body.removeChild(iframe); };
