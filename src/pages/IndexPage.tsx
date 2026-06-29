@@ -29,24 +29,22 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
     if (e.key === 'Enter') handleCreate();
   };
 
+  const [footerBefore, footerAfter] = t('index_footer').split('♥');
+
   return (
     <div className={styles.container}>
       <div className={styles.wrapper}>
-        {/* Terminal badge */}
         <div className={styles.logoBadge}>
           <span className={styles.logoBadgeText}>&gt;_</span>
         </div>
 
-        {/* Title */}
         <div className={styles.headerText}>
           <h1 className={styles.title}>CSS Arena</h1>
           <p className={styles.subtitle}>{t('index_subtitle')}</p>
         </div>
 
-        {/* Form card */}
         <div className={styles.card}>
           <div className={styles.form}>
-            {/* Username field */}
             <div className={styles.fieldWrapper}>
               <label className={styles.label}>{t('index_username_label')}</label>
               <input
@@ -62,7 +60,6 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
               {error && <span className={styles.errorText}>{error}</span>}
             </div>
 
-            {/* Buttons */}
             <div className={styles.buttons}>
               <button className={styles.btnPrimary} onClick={handleCreate}>
                 {t('index_create_room')}
@@ -75,11 +72,10 @@ export const IndexPage: FC<IndexPageProps> = ({ onCreateRoom, onJoinRoom }) => {
           </div>
         </div>
 
-        {/* Footer */}
         <p className={styles.footer}>
-          {`v0.1.0 — ${t('index_footer').split('♥')[0]}`}
+          {`v0.1.0 — ${footerBefore}`}
           <span className={styles.footerHeart}>♥</span>
-          {t('index_footer').split('♥')[1]}
+          {footerAfter}
         </p>
       </div>
     </div>
