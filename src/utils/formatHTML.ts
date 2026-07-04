@@ -2,7 +2,10 @@ function attrs(el: Element): string {
   return [...el.attributes].map((a) => ` ${a.name}="${a.value}"`).join('');
 }
 
-const VOID_TAGS = new Set(['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'source', 'track', 'wbr']);
+const VOID_TAGS = new Set([
+  'br', 'hr', 'img', 'input', 'meta', 'link',
+  'area', 'base', 'col', 'source', 'track', 'wbr',
+]);
 
 function formatNode(node: Node, depth: number): string {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -11,24 +14,22 @@ function formatNode(node: Node, depth: number): string {
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
-  const el = node as Element;
+  const el  = node as Element;
   const tag = el.tagName.toLowerCase();
   const pad = '  '.repeat(depth);
 
   if (VOID_TAGS.has(tag)) return `${pad}<${tag}${attrs(el)}>`;
 
-  const kids = [...el.childNodes]
+  const children = [...el.childNodes]
     .map((n) => formatNode(n, depth + 1))
     .filter(Boolean);
 
-  if (kids.length === 0) return `${pad}<${tag}${attrs(el)}></${tag}>`;
+  if (children.length === 0) return `${pad}<${tag}${attrs(el)}></${tag}>`;
 
-  // Inline: all children are plain text → keep on one line
-  if ([...el.childNodes].every((n) => n.nodeType === Node.TEXT_NODE)) {
-    return `${pad}<${tag}${attrs(el)}>${el.textContent?.trim()}</${tag}>`;
-  }
+  const allText = [...el.childNodes].every((n) => n.nodeType === Node.TEXT_NODE);
+  if (allText) return `${pad}<${tag}${attrs(el)}>${el.textContent?.trim()}</${tag}>`;
 
-  return `${pad}<${tag}${attrs(el)}>\n${kids.join('\n')}\n${pad}</${tag}>`;
+  return `${pad}<${tag}${attrs(el)}>\n${children.join('\n')}\n${pad}</${tag}>`;
 }
 
 export function formatHTML(raw: string): string {
