@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { User, Room, GameState } from '../types';
 import type { Challenge } from '../data/challenges';
 
+type RoomPlayer = Pick<User, 'id' | 'username'>;
+
 interface GameStore {
   currentUser: User | null;
   setCurrentUser: (user: User) => void;
@@ -15,8 +17,8 @@ interface GameStore {
   pendingChallenge: Challenge | null;
   setPendingChallenge: (c: Challenge | null) => void;
 
-  roomPlayers: { id: string; username: string }[];
-  setRoomPlayers: (players: { id: string; username: string }[]) => void;
+  roomPlayers: RoomPlayer[];
+  setRoomPlayers: (players: RoomPlayer[]) => void;
 
   reset: () => void;
 }
@@ -38,10 +40,10 @@ export const useGameStore = create<GameStore>((set) => ({
   setRoomPlayers: (players) => set({ roomPlayers: players }),
 
   reset: () => set({
-    currentUser: null,
-    currentRoom: null,
-    gameState: null,
+    currentUser:      null,
+    currentRoom:      null,
+    gameState:        null,
     pendingChallenge: null,
-    roomPlayers: [],
+    roomPlayers:      [],
   }),
 }));
