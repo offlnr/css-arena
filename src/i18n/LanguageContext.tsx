@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { translations, type Lang, type TranslationKey } from './translations';
 
+const STORAGE_KEY = 'css-arena-lang';
+
 interface LanguageContextValue {
   lang: Lang;
   t: (key: TranslationKey) => string;
@@ -10,16 +12,16 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => {
-    return (localStorage.getItem('css-arena-lang') as Lang) ?? 'en';
-  });
+  const [lang, setLang] = useState<Lang>(
+    () => (localStorage.getItem(STORAGE_KEY) as Lang) ?? 'en',
+  );
 
   const t = useCallback((key: TranslationKey): string => translations[lang][key], [lang]);
 
   const toggleLang = useCallback(() => {
     setLang((prev) => {
       const next: Lang = prev === 'en' ? 'es' : 'en';
-      localStorage.setItem('css-arena-lang', next);
+      localStorage.setItem(STORAGE_KEY, next);
       return next;
     });
   }, []);
