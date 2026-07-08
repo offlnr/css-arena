@@ -171,6 +171,13 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
     onBack();
   };
 
+  const handleToggleReady = () => {
+    const next = !isReady;
+    setIsReady(next);
+    setPlayers((prev) => prev.map((p) => p.isMe ? { ...p, isReady: next } : p));
+    getSocket().emit('player_ready', { isReady: next });
+  };
+
   const canStart   = isHost && isReady;
   const emptySlots = Math.max(0, (currentRoom?.maxPlayers ?? 2) - players.length);
 
@@ -222,7 +229,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
           <div className={styles.meta}>
             <span className={styles.metaItem}>⏱ {currentRoom?.duration} min</span>
             <span className={styles.metaItem}>
-              <Users size={12} style={{ display: 'inline', marginRight: 4 }} />
+              <Users size={12} className={styles.metaIcon} />
               Max {currentRoom?.maxPlayers}
             </span>
           </div>
@@ -271,12 +278,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ isHost, isRematch, onStart
         <div className={styles.actions}>
           <button
             className={`${styles.readyBtn} ${isReady ? styles.readyBtnOn : ''}`}
-            onClick={() => {
-              const next = !isReady;
-              setIsReady(next);
-              setPlayers((prev) => prev.map((p) => p.isMe ? { ...p, isReady: next } : p));
-              getSocket().emit('player_ready', { isReady: next });
-            }}
+            onClick={handleToggleReady}
           >
             {isReady ? t('lobby_ready') : t('lobby_mark_ready')}
           </button>
