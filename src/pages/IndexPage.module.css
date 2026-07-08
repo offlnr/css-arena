@@ -35,6 +35,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.2); }
+  50%       { box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
 }
 
 .logoBadgeText {
