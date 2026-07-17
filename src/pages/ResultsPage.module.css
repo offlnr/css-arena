@@ -34,7 +34,8 @@
   font-family: inherit;
 }
 
-.backButton:hover { color: #FFFFFF; }
+.backButton:hover  { color: #FFFFFF; }
+.backButton:active { color: #FFFFFF; background-color: rgba(255,255,255,0.06); }
 
 .headerTitle {
   font-size: 1rem;
@@ -66,11 +67,12 @@
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 150ms;
+  transition: background-color 150ms, transform 100ms;
   font-family: inherit;
 }
 
-.newGameButton:hover { background-color: #00CC6E; }
+.newGameButton:hover  { background-color: #00CC6E; }
+.newGameButton:active { background-color: #00AA5C; transform: scale(0.97); }
 
 /* ── Body: sidebar + main ── */
 .body {
@@ -114,7 +116,8 @@
   gap: 0.75rem;
 }
 
-.playerCard:hover { background-color: rgba(255,255,255,0.04); }
+.playerCard:hover  { background-color: rgba(255,255,255,0.04); }
+.playerCard:active { background-color: rgba(255,255,255,0.07); }
 .playerCardActive { background-color: rgba(0,255,136,0.07) !important; border-left: 2px solid #00FF88; padding-left: calc(1.125rem - 2px); }
 .playerCardMe     { background-color: rgba(0,255,136,0.04); }
 
