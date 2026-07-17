@@ -61,7 +61,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ results, isHost, onNew
           <button
             className={styles.newGameButton}
             onClick={() => getSocket().emit('rematch')}
-            style={{ marginRight: 8 }}
           >
             <RefreshCw size={14} />
             {t('results_rematch')}
