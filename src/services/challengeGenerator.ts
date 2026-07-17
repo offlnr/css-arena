@@ -3,6 +3,9 @@ import type { Challenge } from '../data/challenges';
 import { CHALLENGES } from '../data/challenges';
 import { formatHTML } from '../utils/formatHTML';
 
+const MODEL_NAME  = 'llama-3.3-70b-versatile';
+const TEMPERATURE = 1.2;
+
 // Difficulty values must stay in Spanish — the server and AI prompt reference them directly.
 const AI_PROMPT = `You are a CSS challenge generator for a competitive coding game.
 
@@ -60,8 +63,8 @@ export async function generateChallenge(): Promise<Challenge> {
     const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
 
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      temperature: 1.2,
+      model:       MODEL_NAME,
+      temperature: TEMPERATURE,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: AI_PROMPT }],
     });
