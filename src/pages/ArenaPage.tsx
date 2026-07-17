@@ -16,6 +16,8 @@ interface ArenaPageProps {
   onExit: () => void;
 }
 
+const SCORING_DEBOUNCE_MS = 800;
+
 type CodeTab = 'html' | 'css';
 
 interface Player {
@@ -144,7 +146,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
       } catch {
         // Scoring failure is non-fatal — keep the previous score displayed.
       }
-    }, 800);
+    }, SCORING_DEBOUNCE_MS);
   }, [htmlCode, cssCode, challenge]);
 
   const handleEnd = useCallback(() => {
@@ -233,11 +235,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
         <p className={styles.errorTitle}>{t('arena_error_title')}</p>
         <p className={styles.errorMsg}>{t('arena_error_msg')}</p>
         <button className={styles.errorBtn} onClick={retry}>{t('arena_retry')}</button>
-        <button
-          className={styles.errorBtn}
-          style={{ background: 'none', border: '1px solid #3A4048', color: '#A0A0A0' }}
-          onClick={onExit}
-        >
+        <button className={styles.errorBtnBack} onClick={onExit}>
           {t('arena_back')}
         </button>
       </div>
@@ -264,7 +262,7 @@ export const ArenaPage: React.FC<ArenaPageProps> = ({ onGameEnd, onExit }) => {
 
         <div className={styles.headerRight}>
           <button className={styles.headerBtn} onClick={onExit}>
-            <LogOut size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+            <LogOut size={13} className={styles.headerBtnIcon} />
             {t('arena_exit')}
           </button>
         </div>
